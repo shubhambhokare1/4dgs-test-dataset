@@ -24,6 +24,11 @@
     
     <geom name="floor" type="plane" size="5 5 0.1" material="grid" pos="0 0 -0.5"/>
     
+    <!-- Target at center where spheres pass close -->
+    <body name="target" pos="0 0 0.5">
+      <site name="target_site" size="0.01" rgba="1 0 0 0"/>
+    </body>
+    
     <!-- Red sphere -->
     <body name="sphere_red" pos="-1.5 -0.5 0.5">
       <freejoint/>
@@ -36,14 +41,18 @@
       <geom name="blue_sphere" type="sphere" size="0.15" rgba="0.1 0.1 0.9 1" mass="1"/>
     </body>
 
-    <!-- Multi-view cameras -->
-    <camera name="cam0" pos="2.5 0 1.5" xyaxes="0 -1 0 0.5 0 1" fovy="60"/>
-    <camera name="cam1" pos="0 2.5 1.5" xyaxes="-1 0 0 0 0.5 1" fovy="60"/>
-    <camera name="cam2" pos="-2.5 0 1.5" xyaxes="0 1 0 -0.5 0 1" fovy="60"/>
-    <camera name="cam3" pos="0 -2.5 1.5" xyaxes="1 0 0 0 -0.5 1" fovy="60"/>
-    <camera name="cam4" pos="2 2 2" xyaxes="-0.7 -0.7 0 0.4 -0.4 0.8" fovy="60"/>
-    <camera name="cam5" pos="-2 2 2" xyaxes="-0.7 0.7 0 -0.4 -0.4 0.8" fovy="60"/>
-    <camera name="cam6" pos="2 -2 2" xyaxes="0.7 -0.7 0 0.4 0.4 0.8" fovy="60"/>
-    <camera name="cam7" pos="-2 -2 2" xyaxes="0.7 0.7 0 -0.4 0.4 0.8" fovy="60"/>
+    <!-- 12 cameras with diverse coverage -->
+    <camera name="cam0" pos="3 0 1.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam1" pos="0 3 1.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam2" pos="-3 0 1.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam3" pos="0 -3 1.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam4" pos="2.5 2.5 2.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam5" pos="-2.5 2.5 2.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam6" pos="2.5 -2.5 2.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam7" pos="-2.5 -2.5 2.5" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam8" pos="2 0 0.8" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam9" pos="-2 0 0.8" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam10" pos="0 0 3.5" mode="targetbody" target="target" fovy="45"/>
+    <camera name="cam11" pos="1.5 1.5 3" mode="targetbody" target="target" fovy="45"/>
   </worldbody>
 </mujoco>

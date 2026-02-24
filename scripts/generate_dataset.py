@@ -15,7 +15,7 @@ Usage:
 """
 
 import os
-os.environ['MUJOCO_GL'] = 'egl'  # Force headless rendering
+os.environ['MUJOCO_GL'] = 'osmesa'  # Software rendering for headless environments
 
 import argparse
 import sys
@@ -139,20 +139,28 @@ class DatasetGenerator:
         mujoco.mj_forward(self.model, self.data)
     
     def render_camera(self, camera_name: str) -> np.ndarray:
-        """Render a single camera view."""
+        """Render a single camera view as RGBA using depth for background mask."""
         renderer = mujoco.Renderer(self.model, height=self.height, width=self.width)
         renderer.update_scene(self.data, camera=camera_name)
-        pixels = renderer.render()
+        rgb = renderer.render()
+
+        renderer.enable_depth_rendering()
+        renderer.update_scene(self.data, camera=camera_name)
+        depth = renderer.render()
+        renderer.disable_depth_rendering()
         renderer.close()
-        return pixels
+
+        # Background pixels have depth at the far plane (very large values)
+        alpha = np.where(depth < depth.max() * 0.999, 255, 0).astype(np.uint8)
+        return np.dstack([rgb, alpha])
     
     def get_camera_intrinsics(self, camera_name: str) -> dict:
         """Get camera intrinsic parameters."""
         cam_id = self.model.camera(camera_name).id
         fovy = self.model.camera(camera_name).fovy[0]
         
-        # Calculate focal length from fovy
-        focal_length_y = (self.height / 2) / np.tan(fovy / 2)
+        # Calculate focal length from fovy (fovy is in degrees in MuJoCo)
+        focal_length_y = (self.height / 2) / np.tan(np.radians(fovy) / 2)
         focal_length_x = focal_length_y  # Assuming square pixels
         
         return {
@@ -227,9 +235,9 @@ class DatasetGenerator:
                 # Render image
                 pixels = self.render_camera(cam_name)
                 
-                # Save image
+                # Save image (RGBA: alpha=0 for background, alpha=255 for objects)
                 img_path = self.images_dir / cam_name / f"{frame_idx:05d}.png"
-                Image.fromarray(pixels).save(img_path)
+                Image.fromarray(pixels, "RGBA").save(img_path)
                 
                 # Get and store extrinsics
                 extrinsic = self.get_camera_extrinsics(cam_name)
@@ -300,8 +308,8 @@ Examples:
                        help='Generate all scenes')
     parser.add_argument('-o', '--output', type=str, default='dataset',
                        help='Output directory (default: dataset)')
-    parser.add_argument('--resolution', type=str, default='1920x1080',
-                       help='Resolution as WIDTHxHEIGHT (default: 1920x1080)')
+    parser.add_argument('--resolution', type=str, default='800x800',
+                       help='Resolution as WIDTHxHEIGHT (default: 800x800)')
     parser.add_argument('--fps', type=int, default=30,
                        help='Frames per second (default: 30)')
     

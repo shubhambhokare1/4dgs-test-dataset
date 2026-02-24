@@ -1,13 +1,43 @@
 import os
 import json
+import math
 import random
 import shutil
 import argparse
+import numpy as np
 from pathlib import Path
 
 
+def write_fused_ply(output_path, n_points=100000, bounds=2.5):
+    """
+    Write a fused.ply point cloud covering [-bounds, bounds]^3.
+    4DGaussians uses this for Gaussian initialization when the file exists,
+    bypassing its default narrow [-1.3, 1.3] random cloud.
+    """
+    np.random.seed(42)
+    xyz = np.random.uniform(-bounds, bounds, (n_points, 3)).astype(np.float32)
+    rgb = np.random.randint(0, 256, (n_points, 3), dtype=np.uint8)
+    normals = np.zeros((n_points, 3), dtype=np.float32)
+
+    ply_path = output_path / "fused.ply"
+    with open(ply_path, 'wb') as f:
+        header = (
+            f"ply\nformat binary_little_endian 1.0\n"
+            f"element vertex {n_points}\n"
+            "property float x\nproperty float y\nproperty float z\n"
+            "property float nx\nproperty float ny\nproperty float nz\n"
+            "property uchar red\nproperty uchar green\nproperty uchar blue\n"
+            "end_header\n"
+        )
+        f.write(header.encode('ascii'))
+        float_data = np.hstack([xyz, normals])  # (n, 6) float32
+        for i in range(n_points):
+            f.write(float_data[i].tobytes() + rgb[i].tobytes())
+    print(f"  Generated fused.ply ({n_points} points, bounds=±{bounds})")
+
+
 def normalize_time(frame_idx, max_frame):
-    return frame_idx / max_frame * 5
+    return frame_idx / max_frame
 
 
 def main(dataset_path, intrinsics_path, extrinsics_path,
@@ -104,7 +134,11 @@ def main(dataset_path, intrinsics_path, extrinsics_path,
                 "transform_matrix": cam_extr
             })
 
+        cam_intr = intr[cams[0]]
+        camera_angle_x = 2 * math.atan(cam_intr["width"] / (2 * cam_intr["fx"]))
+
         transforms = {
+            "camera_angle_x": camera_angle_x,
             "frames": frames_json
         }
 

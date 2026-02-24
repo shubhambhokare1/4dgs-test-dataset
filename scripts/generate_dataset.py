@@ -166,17 +166,21 @@ class DatasetGenerator:
         }
     
     def get_camera_extrinsics(self, camera_name: str) -> np.ndarray:
-        """Get camera extrinsic matrix (world to camera transform)."""
+        """Get camera-to-world extrinsic matrix."""
         cam_id = self.model.camera(camera_name).id
         
-        # Get camera position and orientation
+        # Get camera position and orientation from MuJoCo
         cam_pos = self.data.cam_xpos[cam_id].copy()
         cam_mat = self.data.cam_xmat[cam_id].reshape(3, 3).copy()
         
-        # Create 4x4 transformation matrix
+        # MuJoCo gives us camera-to-world transform
+        # cam_mat: rotation from camera frame to world frame
+        # cam_pos: camera position in world coordinates
+        
+        # Create 4x4 camera-to-world transformation matrix
         extrinsic = np.eye(4)
-        extrinsic[:3, :3] = cam_mat.T
-        extrinsic[:3, 3] = -cam_mat.T @ cam_pos
+        extrinsic[:3, :3] = cam_mat  # Rotation
+        extrinsic[:3, 3] = cam_pos   # Translation (camera position)
         
         return extrinsic
     

@@ -48,6 +48,7 @@ def main(dataset_path, intrinsics_path, extrinsics_path,
     dataset_path = Path(dataset_path)
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
+    write_fused_ply(output_path)
 
     # Load metadata
     with open(intrinsics_path) as f:

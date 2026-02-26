@@ -15,14 +15,14 @@ class Scene1Trajectory(TrajectoryBase):
         super().__init__(duration, fps)
         
         # Define start and end positions
-        self.red_start = np.array([-1.5, -0.5, 0.4])
-        self.red_end = np.array([1.5, 0.5, 0.4])
-        
-        self.blue_start = np.array([-1.5, 0.5, 0.7])
-        self.blue_end = np.array([1.5, -0.5, 0.7])
-        
-        # They cross at center (0, 0, 0.5) at t=2.5s
-        # Minimum distance: ~0.141m at crossing point
+        self.red_start = np.array([-1.5, -0.5, 0.3])
+        self.red_end = np.array([1.5, 0.5, 0.3])
+
+        self.blue_start = np.array([-1.5, 0.5, 0.9])
+        self.blue_end = np.array([1.5, -0.5, 0.9])
+
+        # They cross at center at t=2.5s
+        # Minimum distance: 0.6m at crossing (just touching, radius 0.3 each)
     
     def get_object_state(self, time: float, object_id: str) -> Dict:
         # Clamp time

@@ -15,11 +15,11 @@ class Scene2Trajectory(TrajectoryBase):
         super().__init__(duration, fps)
         
         # Crossing paths
-        self.sphere1_start = np.array([-1.5, -1.0, 0.4])
-        self.sphere1_end = np.array([1.5, 1.0, 0.4])
-        
-        self.sphere2_start = np.array([-1.5, 1.0, 0.7])
-        self.sphere2_end = np.array([1.5, -1.0, 0.7])
+        self.sphere1_start = np.array([-1.5, -1.0, 0.3])
+        self.sphere1_end = np.array([1.5, 1.0, 0.3])
+
+        self.sphere2_start = np.array([-1.5, 1.0, 0.9])
+        self.sphere2_end = np.array([1.5, -1.0, 0.9])
     
     def get_object_state(self, time: float, object_id: str) -> Dict:
         time = np.clip(time, 0, self.duration)

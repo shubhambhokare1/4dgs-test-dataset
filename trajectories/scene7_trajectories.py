@@ -16,8 +16,8 @@ class Scene7Trajectory(TrajectoryBase):
         
         # Cube stays centered
         self.cube_pos = np.array([0, 0, 0.5])
-        self.cube_half_size = 0.3  # Cube half-size
-        self.sphere_radius = 0.2
+        self.cube_half_size = 0.6  # Cube half-size
+        self.sphere_radius = 0.4
         
         # Sphere trajectory - approach from left
         self.sphere_start = np.array([-3.0, 0, 0.5])
@@ -36,7 +36,7 @@ class Scene7Trajectory(TrajectoryBase):
         self.bounce_end = 1.0      # 35% bouncing away (2.1s)
         
         # Deformation amount - even more compression
-        self.max_deformation = 0.15  # 15cm compression (increased from 12cm)
+        self.max_deformation = 0.30  # 30cm compression (scaled with doubled object size)
     
     def get_object_state(self, time: float, object_id: str) -> Dict:
         time = np.clip(time, 0, self.duration)
@@ -89,4 +89,4 @@ class Scene7Trajectory(TrajectoryBase):
         return ['sphere', 'cube']
     
     def get_description(self) -> str:
-        return "Sphere bounces off cube with slow, prominent deformation (15cm compression)"
+        return "Sphere bounces off cube with slow, prominent deformation (30cm compression)"

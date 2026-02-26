@@ -11,11 +11,14 @@
   </visual>
 
   <asset>
-    <texture name="grid" type="2d" builtin="checker" width="512" height="512" 
-             rgb1=".1 .1 .1" rgb2=".2 .2 .2"/>
+    <texture name="white_skybox"
+             type="skybox"
+             builtin="flat"
+             width="512"
+             height="512"
+             rgb1="1 1 1"
+             rgb2="1 1 1"/>
     <material name="white_floor" rgba="1 1 1 1" reflectance="0"/>
-    <texture name="sky" type="skybox" builtin="gradient" width="512" height="512" 
-             rgb1="0.3 0.5 0.7" rgb2="0 0 0"/>
   </asset>
 
   <worldbody>

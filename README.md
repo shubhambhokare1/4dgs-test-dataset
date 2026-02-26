@@ -8,18 +8,18 @@ All scenes use a white floor and white skybox to isolate object appearance from 
 
 ## Scenes
 
-| # | Scene | File | 4DGS Deficiency Targeted |
-|---|-------|------|--------------------------|
-| 1 | Close Proximity — Different Colors | `scene1_close_proximity` | Gaussian boundary preservation; identity maintenance when two differently-coloured objects pass within touching distance |
-| 2 | Close Proximity — Identical Appearance | `scene2_identical_objects` | Identity tracking without appearance cues; two visually identical spheres cross paths |
-| 3 | Three-Body Collision | `scene3_collision` | Multi-object interaction; chaotic bounce trajectories; temporal consistency before/during/after collision |
-| 4 | Occlusion & Dis-occlusion | `scene4_occlusion` | Hallucination behind an occluder; correct reconstruction when objects reappear |
-| 5 | Rapid Direction Changes | `scene5_rapid_motion` | Motion smoothness assumptions; temporal interpolation failure at sharp 90° turns |
-| 6 | Extreme Scale Change | `scene6_scale_change` | Multi-scale representation; level-of-detail adaptation as object moves far-to-near |
-| 7 | Deformable vs Rigid Collision | `scene7_deformation` | Non-rigid deformation capture; appearance change at contact; collision dynamics |
-| 8 | Thin Structure Tracking | `scene8_thin_structure` | Thin geometry preservation; anisotropic Gaussian scaling for rod-like objects |
-| 9 | Topology Change — Split & Merge | `scene9_topology` | Topology change handling; fixed Gaussian count assumption; split and merge events |
-| 10 | High-Frequency Texture + Motion | `scene10_texture` | Fine texture preservation under motion; appearance vs geometry entanglement |
+| # | Scene | File | 4DGS Deficiency Targeted | Complexity Score | Rank |
+|---|-------|------|--------------------------|:---:|:---:|
+| 1 | Close Proximity — Different Colors | `scene1_close_proximity` | Gaussian boundary preservation; identity maintenance when two differently-coloured objects pass within touching distance | 0.166 | 8 |
+| 2 | Close Proximity — Identical Appearance | `scene2_identical_objects` | Identity tracking without appearance cues; two visually identical spheres cross paths | 0.176 | 6 |
+| 3 | Three-Body Collision | `scene3_collision` | Multi-object interaction; chaotic bounce trajectories; temporal consistency before/during/after collision | 0.354 | 2 |
+| 4 | Occlusion & Dis-occlusion | `scene4_occlusion` | Hallucination behind an occluder; correct reconstruction when objects reappear | 0.245 | 4 |
+| 5 | Rapid Direction Changes | `scene5_rapid_motion` | Motion smoothness assumptions; temporal interpolation failure at sharp 90° turns | 0.171 | 7 |
+| 6 | Extreme Scale Change | `scene6_scale_change` | Multi-scale representation; level-of-detail adaptation as object moves far-to-near | 0.117 | 10 |
+| 7 | Deformable vs Rigid Collision | `scene7_deformation` | Non-rigid deformation capture; appearance change at contact; collision dynamics | 0.308 | 3 |
+| 8 | Thin Structure Tracking | `scene8_thin_structure` | Thin geometry preservation; anisotropic Gaussian scaling for rod-like objects | 0.226 | 5 |
+| 9 | Topology Change — Split & Merge | `scene9_topology` | Topology change handling; fixed Gaussian count assumption; split and merge events | 0.399 | 1 |
+| 10 | High-Frequency Texture + Motion | `scene10_texture` | Fine texture preservation under motion; appearance vs geometry entanglement | 0.125 | 9 |
 
 ---
 
@@ -221,6 +221,124 @@ python metrics.py \
 ```
 
 Reports PSNR, SSIM, and LPIPS on the test split.
+
+---
+
+## 6. Scene Complexity Scoring
+
+Each scene is assigned a complexity score **C ∈ [0, 1]** that quantifies how difficult it is expected to be for 4DGS-class reconstruction methods. The score is a weighted sum of ten scene-level factors, each independently rated on a [0, 1] scale:
+
+### Factors and weights
+
+| Factor | Weight | Description |
+|--------|:------:|-------------|
+| `motion_speed` | 0.12 | Peak object speed relative to scene bounds. Fast motion violates temporal-continuity priors in k-planes. |
+| `num_objects` | 0.08 | Number of independently moving objects (normalised; 3+ = 1.0). More objects require more Gaussians. |
+| `occlusion` | 0.13 | Degree of complete or prolonged occlusion. Full occlusion causes hallucination and dis-occlusion artefacts. |
+| `proximity` | 0.10 | Closest inter-object separation normalised by object diameter (touching = 1.0). Nearby Gaussians blur across boundaries. |
+| `deformation` | 0.13 | Presence and magnitude of non-rigid shape change. 4DGS assumes near-rigid deformation fields. |
+| `topology` | 0.18 | Presence of topology change events (split / merge). Fixed Gaussian count cannot represent object count changes. |
+| `thin_geometry` | 0.09 | Aspect ratio of the thinnest object (rod radius / half-length). Very thin structures need many tiny anisotropic Gaussians. |
+| `scale_variation` | 0.05 | Ratio of apparent object size at closest vs farthest point. Extreme scale changes challenge level-of-detail representation. |
+| `direction_changes` | 0.07 | Number and sharpness of direction reversals. Sharp turns violate smooth motion priors in the deformation field. |
+| `texture_complexity` | 0.05 | High-frequency surface texture under rotation/translation. Appearance and geometry become entangled in Gaussian features. |
+
+### Formula
+
+$$C = \sum_{i=1}^{10} w_i \cdot f_i$$
+
+where $f_i \in [0,1]$ is the factor score and $w_i$ is the factor weight, with $\sum w_i = 1$.
+
+In plain text:
+
+```
+C = 0.12·motion_speed + 0.08·num_objects + 0.13·occlusion + 0.10·proximity
+  + 0.13·deformation + 0.18·topology + 0.09·thin_geometry + 0.05·scale_variation
+  + 0.07·direction_changes + 0.05·texture_complexity
+```
+
+### Scores and ranks
+
+| Rank | Scene | Score | Primary driver(s) |
+|:----:|-------|:-----:|-------------------|
+| 1 | Scene 9 — Topology Change | 0.399 | topology (0.18 × 1.0) + proximity + deformation |
+| 2 | Scene 3 — Three-Body Collision | 0.354 | motion_speed + num_objects + proximity + occlusion |
+| 3 | Scene 7 — Deformable Collision | 0.308 | deformation (0.13 × 1.0) + proximity |
+| 4 | Scene 4 — Occlusion | 0.245 | occlusion (0.13 × 1.0) |
+| 5 | Scene 8 — Thin Structures | 0.226 | thin_geometry (0.09 × 1.0) + motion_speed |
+| 6 | Scene 2 — Identical Objects | 0.176 | proximity (0.10 × 1.0) |
+| 7 | Scene 5 — Rapid Motion | 0.171 | direction_changes (0.07 × 1.0) + motion_speed |
+| 8 | Scene 1 — Close Proximity | 0.166 | proximity + motion_speed |
+| 9 | Scene 10 — Texture + Motion | 0.125 | texture_complexity (0.05 × 1.0) |
+| 10 | Scene 6 — Scale Change | 0.117 | scale_variation (0.05 × 1.0) |
+
+The complexity scores and ranks are computed programmatically in `scripts/metrics_analysis.py`. Run `--complexity_only` to print the table without generating plots.
+
+---
+
+## 7. Metrics Analysis and Visualisation
+
+`scripts/metrics_analysis.py` ingests per-iteration training metrics from three reconstruction methods and generates two families of plots.
+
+### Input format
+
+Place one JSON file per scene per method under a `metrics/` directory:
+
+```
+metrics/
+├── 3dgs/        scene1.json  …  scene10.json
+├── 4dgs/        scene1.json  …  scene10.json
+└── deformable/  scene1.json  …  scene10.json
+```
+
+Each JSON file should be a JSON array (or NDJSON) of checkpoint records:
+
+```json
+[
+    {"iteration": 1000,  "psnr": 25.3, "ssim": 0.85, "lpips": 0.12},
+    {"iteration": 7000,  "psnr": 28.1, "ssim": 0.91, "lpips": 0.08},
+    {"iteration": 30000, "psnr": 30.5, "ssim": 0.94, "lpips": 0.05}
+]
+```
+
+If a method uses different field names, fill in the corresponding `parse_3dgs` / `parse_4dgs` / `parse_deformable` placeholder function in the script.
+
+### Plot types
+
+**Type 1 — Training curves** (10 figures × 3 subplots = 30 plots)
+
+One figure per scene, three subplots (PSNR / SSIM / LPIPS), each showing all three methods as lines over training iterations. Saved to `figures/training_curves/scene{N}_training_curves.png`.
+
+**Type 2 — Eval vs complexity** (3 figures)
+
+One figure per metric; x-axis is scene complexity rank (rank 1 = most complex), y-axis is the final recorded metric value. Shows how each method degrades as scene difficulty increases. Saved to `figures/eval_vs_complexity/eval_{metric}.png`.
+
+### Usage
+
+```bash
+# Generate all plots (expects metrics/ directory in cwd)
+python scripts/metrics_analysis.py
+
+# Custom paths
+python scripts/metrics_analysis.py \
+    --metrics_dir path/to/metrics \
+    --output_dir  path/to/figures
+
+# Print complexity table only — no plots
+python scripts/metrics_analysis.py --complexity_only
+```
+
+**Options:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--metrics_dir` | `metrics` | Root directory containing `3dgs/`, `4dgs/`, `deformable/` sub-dirs |
+| `--output_dir` | `figures` | Directory to write generated PNG files |
+| `--complexity_only` | — | Print complexity table and exit without generating plots |
+
+```bash
+pip install matplotlib numpy
+```
 
 ---
 

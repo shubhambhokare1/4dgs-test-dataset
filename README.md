@@ -121,24 +121,41 @@ python scripts/generate_masks.py --all
 5. **`transforms_*.json`** — each split receives a NeRF-style transforms file containing `camera_angle_x`, per-frame focal lengths (`fl_x`, `fl_y`), principal point (`cx`, `cy`), image dimensions, normalised timestamp (`time` ∈ [0, 1]), and the 4×4 camera-to-world matrix.
 6. **`fused.ply`** — a random point cloud covering `[-bounds, bounds]³` is written to the output directory. 4DGaussians reads this file to initialise Gaussians across the full scene volume, overriding its default narrow `[-1.3, 1.3]` random cloud.
 
+**Single scene:**
+
 ```bash
 python scripts/dnerf_eq.py \
-    --dataset_path  dataset/scene3/images \
-    --intrinsics    dataset/scene3/camera_intrinsics.json \
-    --extrinsics    dataset/scene3/camera_extrinsics.json \
+    --dataset_path  dataset/scene3_collision/images \
+    --intrinsics    dataset/scene3_collision/camera_intrinsics.json \
+    --extrinsics    dataset/scene3_collision/camera_extrinsics.json \
     --output_path   dnerf/scene3_collision \
-    --num_frames    150
+    --num_frames    150 \
+    --bounds        2.5
 ```
+
+**All scenes at once:**
+
+```bash
+python scripts/dnerf_eq.py --all \
+    --dataset_dir dataset \
+    --output_dir  dnerf
+```
+
+When `--all` is used, per-scene `num_frames` and `bounds` are set automatically from the values in the `arguments/` config files.
 
 **Options:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--dataset_path` | — | Path to the `images/` directory inside the scene folder |
-| `--intrinsics` | — | Path to `camera_intrinsics.json` |
-| `--extrinsics` | — | Path to `camera_extrinsics.json` |
-| `--output_path` | — | Destination directory for the D-NeRF dataset |
-| `--num_frames` | `150` | Number of (camera, frame) pairs to sample |
+| `--dataset_path` | — | Path to the `images/` directory (single-scene mode) |
+| `--intrinsics` | — | Path to `camera_intrinsics.json` (single-scene mode) |
+| `--extrinsics` | — | Path to `camera_extrinsics.json` (single-scene mode) |
+| `--output_path` | — | Destination directory for the D-NeRF dataset (single-scene mode) |
+| `--num_frames` | `150` | Number of (camera, frame) pairs to sample (single-scene mode) |
+| `--bounds` | `2.5` | Spatial extent for `fused.ply` covering `[-bounds, bounds]³` (single-scene mode) |
+| `--all` | `false` | Process all 10 scenes automatically |
+| `--dataset_dir` | `dataset` | Root dataset directory (used with `--all`) |
+| `--output_dir` | `dnerf` | Root output directory (used with `--all`) |
 
 **Output structure:**
 
@@ -348,4 +365,12 @@ pip install matplotlib numpy
 pip install mujoco numpy Pillow tqdm
 ```
 
-MuJoCo rendering requires either an EGL-capable GPU or OSMesa for headless environments. `generate_dataset.py` sets `MUJOCO_GL=osmesa` automatically.
+MuJoCo rendering backend is selected automatically based on platform:
+
+| Platform | Default backend | Notes |
+|----------|----------------|-------|
+| macOS | `glfw` | Native OpenGL; no extra install needed |
+| Linux + GPU | `egl` | Hardware-accelerated headless rendering |
+| Linux, no GPU | set `MUJOCO_GL=osmesa` manually | Software rendering; `apt install libosmesa6` |
+
+Override by setting `MUJOCO_GL` in your environment before running any script.

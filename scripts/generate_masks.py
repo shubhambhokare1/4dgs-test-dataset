@@ -12,10 +12,22 @@ Usage:
 """
 
 import os
-os.environ['MUJOCO_GL'] = 'egl'
+import sys
+
+# Pick the right MuJoCo rendering backend for the current platform.
+# macOS         — native OpenGL via glfw (egl/osmesa are Linux-only).
+# Linux + GPU   — egl  (hardware-accelerated, recommended for headless).
+# Linux no GPU  — osmesa (software, slower; install with: apt install libosmesa6).
+# Override by setting MUJOCO_GL in the environment before running.
+if "MUJOCO_GL" not in os.environ:
+    if sys.platform == "darwin":
+        os.environ["MUJOCO_GL"] = "glfw"
+    elif os.path.exists("/dev/dri"):
+        os.environ["MUJOCO_GL"] = "egl"
+    else:
+        os.environ["MUJOCO_GL"] = "osmesa"
 
 import argparse
-import sys
 from pathlib import Path
 import json
 import numpy as np

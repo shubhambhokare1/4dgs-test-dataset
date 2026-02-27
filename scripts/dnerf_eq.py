@@ -41,14 +41,14 @@ def normalize_time(frame_idx, max_frame):
 
 
 def main(dataset_path, intrinsics_path, extrinsics_path,
-         output_path, num_frames=150):
+         output_path, num_frames=150, bounds=2.5):
 
     random.seed(42)
 
     dataset_path = Path(dataset_path)
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    write_fused_ply(output_path)
+    write_fused_ply(output_path, bounds=bounds)
 
     # Load metadata
     with open(intrinsics_path) as f:
@@ -151,20 +151,75 @@ def main(dataset_path, intrinsics_path, extrinsics_path,
     print("Contains: train/, val/, test/ and transforms_*.json files")
 
 
+SCENE_NAMES = {
+    1: "scene1_close_proximity",
+    2: "scene2_identical_objects",
+    3: "scene3_collision",
+    4: "scene4_occlusion",
+    5: "scene5_rapid_motion",
+    6: "scene6_scale_change",
+    7: "scene7_deformation",
+    8: "scene8_thin_structure",
+    9: "scene9_topology",
+    10: "scene10_texture",
+}
+
+SCENE_NUM_FRAMES = {
+    1: 150, 2: 150, 3: 150, 4: 150, 5: 180,
+    6: 180, 7: 180, 8: 150, 9: 180, 10: 150,
+}
+
+SCENE_BOUNDS = {
+    1: 2.0, 2: 2.0, 3: 2.5, 4: 2.5, 5: 2.5,
+    6: 3.5, 7: 3.5, 8: 2.5, 9: 1.5, 10: 2.0,
+}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_path", required=True)
-    parser.add_argument("--intrinsics", required=True)
-    parser.add_argument("--extrinsics", required=True)
-    parser.add_argument("--output_path", required=True)
+
+    # Per-scene mode
+    parser.add_argument("--dataset_path")
+    parser.add_argument("--intrinsics")
+    parser.add_argument("--extrinsics")
+    parser.add_argument("--output_path")
     parser.add_argument("--num_frames", type=int, default=150)
+    parser.add_argument("--bounds", type=float, default=2.5,
+                        help="Spatial bounds for fused.ply (±bounds in each axis)")
+
+    # Batch mode
+    parser.add_argument("--all", action="store_true",
+                        help="Process all 10 scenes automatically")
+    parser.add_argument("--dataset_dir", default="dataset",
+                        help="Root directory containing per-scene folders (used with --all)")
+    parser.add_argument("--output_dir", default="dnerf",
+                        help="Root output directory for D-NeRF data (used with --all)")
 
     args = parser.parse_args()
 
-    main(
-        args.dataset_path,
-        args.intrinsics,
-        args.extrinsics,
-        args.output_path,
-        args.num_frames
-    )
+    if args.all:
+        dataset_dir = Path(args.dataset_dir)
+        output_dir = Path(args.output_dir)
+        for scene_num, scene_name in SCENE_NAMES.items():
+            print(f"\n=== Processing {scene_name} ===")
+            scene_dir = dataset_dir / f"scene{scene_num}"
+            main(
+                dataset_path=scene_dir / "images",
+                intrinsics_path=scene_dir / "camera_intrinsics.json",
+                extrinsics_path=scene_dir / "camera_extrinsics.json",
+                output_path=output_dir / scene_name,
+                num_frames=SCENE_NUM_FRAMES[scene_num],
+                bounds=SCENE_BOUNDS[scene_num],
+            )
+    else:
+        if not all([args.dataset_path, args.intrinsics, args.extrinsics, args.output_path]):
+            parser.error("--dataset_path, --intrinsics, --extrinsics, and --output_path "
+                         "are required when not using --all")
+        main(
+            args.dataset_path,
+            args.intrinsics,
+            args.extrinsics,
+            args.output_path,
+            args.num_frames,
+            args.bounds,
+        )

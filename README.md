@@ -222,8 +222,7 @@ python train.py \
 
 ```bash
 python render.py \
-    -s /path/to/4dgs-test-dataset/dnerf/scene3_collision \
-    --expname "scene3_collision" \
+    --model_path output/scene3_collision/ \
     --configs arguments/dnerf/scene3_collision.py
 ```
 
@@ -233,8 +232,7 @@ Rendered frames are written to `output/scene3_collision/`.
 
 ```bash
 python metrics.py \
-    -s /path/to/4dgs-test-dataset/dnerf/scene3_collision \
-    --expname "scene3_collision"
+    --model_path output/scene3_collision/ \
 ```
 
 Reports PSNR, SSIM, and LPIPS on the test split.

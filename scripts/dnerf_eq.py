@@ -1,7 +1,6 @@
 import os
 import json
 import math
-import random
 import shutil
 import argparse
 import numpy as np
@@ -43,8 +42,6 @@ def normalize_time(frame_idx, max_frame):
 def main(dataset_path, intrinsics_path, extrinsics_path,
          output_path, num_frames=150, bounds=2.5):
 
-    random.seed(42)
-
     dataset_path = Path(dataset_path)
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -71,31 +68,22 @@ def main(dataset_path, intrinsics_path, extrinsics_path,
     if num_available_frames == 0:
         raise ValueError("No PNG files found in dataset.")
 
-    # ---- Sample timestamps (by index, not filename number) ----
-    frame_indices = list(range(num_available_frames))
-    selected_indices = random.sample(
-        frame_indices,
-        min(num_frames, num_available_frames)
-    )
+    # ---- Deterministic pairing: timestamp i -> cam[i % num_cams], frame i ----
+    num_cams = len(cams)
+    n_total = min(num_frames, num_available_frames)
+    all_pairs = [(cams[i % num_cams], i) for i in range(n_total)]
 
-    # Pick one random camera per timestamp
-    selected_pairs = []
-    for idx in selected_indices:
-        cam = random.choice(cams)
-        selected_pairs.append((cam, idx))
-
-    random.shuffle(selected_pairs)
-
-    # ---- Split 70 / 15 / 15 ----
-    n = len(selected_pairs)
-    train_end = int(0.7 * n)
-    val_end = int(0.85 * n)
-
-    splits = {
-        "train": selected_pairs[:train_end],
-        "val": selected_pairs[train_end:val_end],
-        "test": selected_pairs[val_end:]
-    }
+    # ---- Split 70/15/15 evenly spaced across the timeline ----
+    # Repeating cycle of 20: positions 0-13 → train, 14-16 → test, 17-19 → val
+    splits = {"train": [], "test": [], "val": []}
+    for i, pair in enumerate(all_pairs):
+        pos = i % 20
+        if pos < 14:
+            splits["train"].append(pair)
+        elif pos < 17:
+            splits["test"].append(pair)
+        else:
+            splits["val"].append(pair)
 
     # ---- Process splits ----
     for split_name, items in splits.items():

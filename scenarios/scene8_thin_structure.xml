@@ -6,7 +6,7 @@
   </option>
 
   <visual>
-    <global offwidth="1920" offheight="1080"/>
+    <global offwidth="800" offheight="800"/>
     <quality shadowsize="4096"/>
   </visual>
 
@@ -34,26 +34,27 @@
     <!-- Moving rod (red, moves left to right) -->
     <body name="rod_moving" pos="-2.0 -0.5 1.0">
       <freejoint/>
-      <geom name="rod_moving_geom" type="cylinder" size="0.02 0.5" rgba="0.9 0.2 0.2 1" mass="1"/>
+      <geom name="rod_moving_geom" type="cylinder" size="0.04 1.0" rgba="0.9 0.2 0.2 1" mass="1"/>
     </body>
     
     <!-- Rotating rod (blue, spins in place) -->
-    <body name="rod_rotating" pos="0 0.5 1.0">
+    <body name="rod_rotating" pos="0 0.5 2.0">
       <freejoint/>
-      <geom name="rod_rotating_geom" type="cylinder" size="0.02 0.5" rgba="0.2 0.2 0.9 1" mass="1"/>
+      <geom name="rod_rotating_geom" type="cylinder" size="0.08 1.0" rgba="0.2 0.2 0.9 1" mass="1"/>
     </body>
 
-    <camera name="cam0" pos="3 0 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam1" pos="0 3 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam2" pos="-3 0 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam3" pos="0 -3 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam4" pos="2.5 2.5 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam5" pos="-2.5 2.5 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam6" pos="2.5 -2.5 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam7" pos="-2.5 -2.5 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam8" pos="2 0 0.8" mode="targetbody" target="target" fovy="55"/>
-    <camera name="cam9" pos="-2 0 0.8" mode="targetbody" target="target" fovy="55"/>
-    <camera name="cam10" pos="0 0 3.5" mode="targetbody" target="target" fovy="45"/>
-    <camera name="cam11" pos="1.5 1.5 3" mode="targetbody" target="target" fovy="45"/>
+    <!-- Scaled 1.7x for 800x800 square resolution — moving rod extends ±2.5m from target -->
+    <camera name="cam0" pos="5.1 0 2.55" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam1" pos="0 5.1 2.55" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam2" pos="-5.1 0 2.55" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam3" pos="0 -5.1 2.55" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam4" pos="4.25 4.25 4.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam5" pos="-4.25 4.25 4.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam6" pos="4.25 -4.25 4.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam7" pos="-4.25 -4.25 4.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam8" pos="3.4 0 1.36" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam9" pos="-3.4 0 1.36" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam10" pos="0 0 6.0" mode="targetbody" target="target" fovy="45"/>
+    <camera name="cam11" pos="2.55 2.55 5.1" mode="targetbody" target="target" fovy="45"/>
   </worldbody>
 </mujoco>

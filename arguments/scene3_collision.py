@@ -7,7 +7,7 @@ ModelHiddenParams = dict(
      'output_coordinate_dim': 32,
      'resolution': [64, 64, 64, 150]  # 5s * 30fps = 150 frames
     },
-    bounds = 2.5  # balls start at ~2.0 units from center
+    bounds = 3.5  # balls start at radius 2.5 and bounce up to ~3.1m from origin
 )
 
 OptimizationParams = dict(

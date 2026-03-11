@@ -18,11 +18,12 @@ class Scene8Trajectory(TrajectoryBase):
         self.moving_rod_start = np.array([-2.0, -0.5, 1.0])
         self.moving_rod_end = np.array([2.0, -0.5, 1.0])
         
-        # Rotating rod position (stays at this position, just rotates)
-        self.rotating_rod_pos = np.array([0, 0.5, 1.0])
-        
-        # Rotation: 3 full revolutions during animation
-        self.num_rotations = 3.0
+        # Rotating rod position (translates like the moving rod, but at y=0.5, higher z)
+        self.rotating_rod_start = np.array([-2.0, 0.5, 2.0])
+        self.rotating_rod_end = np.array([2.0, 0.5, 2.0])
+
+        # Rotation: 0.75 full revolutions during animation
+        self.num_rotations = 0.75
     
     def get_object_state(self, time: float, object_id: str) -> Dict:
         time = np.clip(time, 0, self.duration)
@@ -76,8 +77,10 @@ class Scene8Trajectory(TrajectoryBase):
             
             quat = self.normalize_quaternion(np.array([qw, qx, qy, qz]))
             
+            pos = self.rotating_rod_start + (self.rotating_rod_end - self.rotating_rod_start) * t
+
             return {
-                'position': self.rotating_rod_pos,
+                'position': pos,
                 'quaternion': quat,
             }
         

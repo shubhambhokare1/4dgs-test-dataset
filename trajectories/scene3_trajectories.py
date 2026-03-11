@@ -77,7 +77,7 @@ class Scene3Trajectory(TrajectoryBase):
         # Phase 2: Bouncing away (starts IMMEDIATELY after arrival)
         else:
             t = (time - arrival_time) / (self.duration - arrival_time)
-            t_eased = 1 - (1 - t) * (1 - t)  # Ease out
+            t_eased = t * t  # Ease in (slow start, accelerates away)
             pos = collision_point + bounce_dir * self.bounce_distance * t_eased
         
         return {

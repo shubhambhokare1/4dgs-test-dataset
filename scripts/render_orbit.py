@@ -52,10 +52,10 @@ SCENE_INFO = {
     10: {"name": "scene10_texture",          "xml": "scene10_texture.xml"},
 }
 
-# Default orbit radius per scene — slightly larger than scene bounds
+# Default orbit radius per scene — matched to updated camera distances (scaled for 800x800)
 DEFAULT_RADIUS = {
-    1: 4.0, 2: 4.0, 3: 5.0, 4: 5.0, 5: 5.0,
-    6: 6.0, 7: 6.0, 8: 5.0, 9: 3.5, 10: 4.0,
+    1: 5.0, 2: 5.0, 3: 7.0, 4: 5.5, 5: 6.5,
+    6: 6.5, 7: 6.0, 8: 5.5, 9: 3.0, 10: 5.0,
 }
 
 
@@ -69,7 +69,7 @@ def render_orbit(
     radius:      float  = None,
     elevation:   float  = -20.0,
     num_frames:  int    = 180,
-    resolution:  tuple  = (1280, 720),
+    resolution:  tuple  = (800, 800),
     fps:         int    = 30,
     freeze_time: float  = None,
     make_video:  bool   = False,
@@ -206,8 +206,10 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("-s", "--scene", type=int, required=True,
+    parser.add_argument("-s", "--scene", type=int, default=None,
                         help="Scene number (1–10)")
+    parser.add_argument("--all", action="store_true",
+                        help="Render all 10 scenes")
     parser.add_argument("-o", "--output", type=str, default="renders",
                         help="Root output directory (default: renders)")
     parser.add_argument("--radius", type=float, default=None,
@@ -217,8 +219,8 @@ def main() -> None:
                              "down from above (default: -20)")
     parser.add_argument("--num_frames", type=int, default=180,
                         help="Total orbit frames (default: 180 → 2 s at 30 fps)")
-    parser.add_argument("--resolution", type=str, default="1280x720",
-                        help="WIDTHxHEIGHT (default: 1280x720)")
+    parser.add_argument("--resolution", type=str, default="800x800",
+                        help="WIDTHxHEIGHT (default: 800x800)")
     parser.add_argument("--fps", type=int, default=30,
                         help="Video frame rate (default: 30)")
     parser.add_argument("--freeze_time", type=float, default=None,
@@ -229,29 +231,38 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if not args.all and args.scene is None:
+        parser.print_help()
+        print("\nError: must specify --scene or --all")
+        sys.exit(1)
+
     try:
         w, h = map(int, args.resolution.split("x"))
     except ValueError:
         print(f"Error: invalid resolution '{args.resolution}' — use WIDTHxHEIGHT")
         sys.exit(1)
 
-    try:
-        render_orbit(
-            scene_num=args.scene,
-            output_dir=Path(args.output),
-            radius=args.radius,
-            elevation=args.elevation,
-            num_frames=args.num_frames,
-            resolution=(w, h),
-            fps=args.fps,
-            freeze_time=args.freeze_time,
-            make_video=args.video,
-        )
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    scenes = list(SCENE_INFO.keys()) if args.all else [args.scene]
+
+    for scene_num in scenes:
+        try:
+            render_orbit(
+                scene_num=scene_num,
+                output_dir=Path(args.output),
+                radius=args.radius,
+                elevation=args.elevation,
+                num_frames=args.num_frames,
+                resolution=(w, h),
+                fps=args.fps,
+                freeze_time=args.freeze_time,
+                make_video=args.video,
+            )
+        except Exception as e:
+            print(f"Error (scene {scene_num}): {e}")
+            import traceback
+            traceback.print_exc()
+            if not args.all:
+                sys.exit(1)
 
 
 if __name__ == "__main__":

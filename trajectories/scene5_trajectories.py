@@ -1,6 +1,6 @@
 """
 Scene 5: Rapid Direction Changes (Zigzag)
-Sphere follows zigzag path with 90° turns every 0.4 seconds.
+Sphere follows zigzag path with 90° turns every 0.8 seconds.
 Tests: Motion smoothness assumptions, temporal interpolation
 """
 
@@ -14,8 +14,8 @@ class Scene5Trajectory(TrajectoryBase):
     def __init__(self, duration: float = 6.0, fps: int = 30):
         super().__init__(duration, fps)
         
-        self.speed = 1.5  # m/s
-        self.segment_duration = 0.4  # Change direction every 0.4s
+        self.speed = 1.2  # m/s
+        self.segment_duration = 1.6  # Change direction every 1.6s
         
         # Direction cycle: +X, +Y, -X, -Y
         self.directions = [
@@ -32,7 +32,7 @@ class Scene5Trajectory(TrajectoryBase):
         time = np.clip(time, 0, self.duration)
         
         # Accumulate position through segments
-        pos = np.array([0.0, 0.0, 0.5])
+        pos = np.array([0.0, 0.0, 1.2])
         remaining_time = time
         segment_idx = 0
         
@@ -56,4 +56,4 @@ class Scene5Trajectory(TrajectoryBase):
         return ['sphere']
     
     def get_description(self) -> str:
-        return "Zigzag motion with 90° direction changes every 0.4s"
+        return "Zigzag motion with 90° direction changes every 1.6s"

@@ -6,7 +6,7 @@
   </option>
 
   <visual>
-    <global offwidth="1920" offheight="1080"/>
+    <global offwidth="800" offheight="800"/>
     <quality shadowsize="4096"/>
   </visual>
 
@@ -47,18 +47,18 @@
       <geom name="wall_geom" type="box" size="0.05 0.8 1.5" rgba="0.5 0.5 1.0 1"/>
     </body>
 
-    <!-- Cameras positioned to see occlusion from different angles -->
-    <camera name="cam0" pos="3.5 0 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam1" pos="0 3.5 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam2" pos="-3.5 0 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam3" pos="0 -3.5 1.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam4" pos="2.8 2.8 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam5" pos="-2.8 2.8 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam6" pos="2.8 -2.8 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam7" pos="-2.8 -2.8 2.5" mode="targetbody" target="target" fovy="50"/>
-    <camera name="cam8" pos="2.5 0 0.8" mode="targetbody" target="target" fovy="55"/>
-    <camera name="cam9" pos="-2.5 0 0.8" mode="targetbody" target="target" fovy="55"/>
-    <camera name="cam10" pos="0 0 4" mode="targetbody" target="target" fovy="45"/>
-    <camera name="cam11" pos="1.5 1.5 3.5" mode="targetbody" target="target" fovy="45"/>
+    <!-- Cameras scaled 1.5x for 800x800 square resolution — sphere orbits at 1.8m radius -->
+    <camera name="cam0" pos="5.25 0 2.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam1" pos="0 5.25 2.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam2" pos="-5.25 0 2.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam3" pos="0 -5.25 2.25" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam4" pos="4.2 4.2 3.75" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam5" pos="-4.2 4.2 3.75" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam6" pos="4.2 -4.2 3.75" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam7" pos="-4.2 -4.2 3.75" mode="targetbody" target="target" fovy="50"/>
+    <camera name="cam8" pos="3.75 0 1.2" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam9" pos="-3.75 0 1.2" mode="targetbody" target="target" fovy="55"/>
+    <camera name="cam10" pos="0 0 6.0" mode="targetbody" target="target" fovy="45"/>
+    <camera name="cam11" pos="2.25 2.25 5.25" mode="targetbody" target="target" fovy="45"/>
   </worldbody>
 </mujoco>

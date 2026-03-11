@@ -8,18 +8,18 @@ All scenes use a white floor and white skybox to isolate object appearance from 
 
 ## Scenes
 
-| # | Scene | File | 4DGS Deficiency Targeted | Complexity Score | Rank |
-|---|-------|------|--------------------------|:---:|:---:|
-| 1 | Close Proximity — Different Colors | `scene1_close_proximity` | Gaussian boundary preservation; identity maintenance when two differently-coloured objects pass within touching distance | 0.166 | 8 |
-| 2 | Close Proximity — Identical Appearance | `scene2_identical_objects` | Identity tracking without appearance cues; two visually identical spheres cross paths | 0.176 | 6 |
-| 3 | Three-Body Collision | `scene3_collision` | Multi-object interaction; chaotic bounce trajectories; temporal consistency before/during/after collision | 0.354 | 2 |
-| 4 | Occlusion & Dis-occlusion | `scene4_occlusion` | Hallucination behind an occluder; correct reconstruction when objects reappear | 0.245 | 4 |
-| 5 | Rapid Direction Changes | `scene5_rapid_motion` | Motion smoothness assumptions; temporal interpolation failure at sharp 90° turns | 0.171 | 7 |
-| 6 | Extreme Scale Change | `scene6_scale_change` | Multi-scale representation; level-of-detail adaptation as object moves far-to-near | 0.117 | 10 |
-| 7 | Deformable vs Rigid Collision | `scene7_deformation` | Non-rigid deformation capture; appearance change at contact; collision dynamics | 0.308 | 3 |
-| 8 | Thin Structure Tracking | `scene8_thin_structure` | Thin geometry preservation; anisotropic Gaussian scaling for rod-like objects | 0.226 | 5 |
-| 9 | Topology Change — Split & Merge | `scene9_topology` | Topology change handling; fixed Gaussian count assumption; split and merge events | 0.399 | 1 |
-| 10 | High-Frequency Texture + Motion | `scene10_texture` | Fine texture preservation under motion; appearance vs geometry entanglement | 0.125 | 9 |
+| # | Scene | File | 4DGS Deficiency Targeted |
+|---|-------|------|--------------------------|
+| 1 | Close Proximity — Different Colors | `scene1_close_proximity` | Gaussian boundary preservation; identity maintenance when two differently-coloured objects pass within touching distance |
+| 2 | Close Proximity — Identical Appearance | `scene2_identical_objects` | Identity tracking without appearance cues; two visually identical spheres cross paths |
+| 3 | Three-Body Collision | `scene3_collision` | Multi-object interaction; chaotic bounce trajectories; temporal consistency before/during/after collision |
+| 4 | Occlusion & Dis-occlusion | `scene4_occlusion` | Hallucination behind an occluder; correct reconstruction when objects reappear |
+| 5 | Rapid Direction Changes | `scene5_rapid_motion` | Motion smoothness assumptions; temporal interpolation failure at sharp 90° turns |
+| 6 | Extreme Scale Change | `scene6_scale_change` | Multi-scale representation; level-of-detail adaptation as object moves far-to-near |
+| 7 | Deformable vs Rigid Collision | `scene7_deformation` | Non-rigid deformation capture; appearance change at contact; collision dynamics |
+| 8 | Thin Structure Tracking | `scene8_thin_structure` | Thin geometry preservation; anisotropic Gaussian scaling for rod-like objects |
+| 9 | Topology Change — Split & Merge | `scene9_topology` | Topology change handling; fixed Gaussian count assumption; split and merge events |
+| 10 | High-Frequency Texture + Motion | `scene10_texture` | Fine texture preservation under motion; appearance vs geometry entanglement |
 
 ---
 
@@ -190,7 +190,7 @@ The `arguments/` directory contains per-scene configuration files for 4DGaussian
 |------|----------------|----------------|-------|
 | `scene1_close_proximity.py` | 150 | 2.0 | Two spheres, ±1.5 travel in X |
 | `scene2_identical_objects.py` | 150 | 2.0 | Two spheres, ±1.5 travel in X |
-| `scene3_collision.py` | 150 | 2.5 | Spheres start at radius 2.5 from origin |
+| `scene3_collision.py` | 150 | 3.5 | Spheres start at radius 2.5, bounce up to ~3.1 m from origin |
 | `scene4_occlusion.py` | 120 | 2.5 | 4 s scene; sphere orbit radius 1.8 |
 | `scene5_rapid_motion.py` | 180 | 2.5 | Zigzag clipped at ±2 in XY |
 | `scene6_scale_change.py` | 180 | 3.5 | Corners at (~2.83 XY distance, z=3.0) |
@@ -218,7 +218,7 @@ python train.py \
     --iterations 30000
 ```
 
-### Render
+### Render (4DGS output)
 
 ```bash
 python render.py \
@@ -228,131 +228,133 @@ python render.py \
 
 Rendered frames are written to `output/scene3_collision/`.
 
-### Evaluate
-
-```bash
-python metrics.py \
-    --model_path output/scene3_collision/ \
-```
-
-Reports PSNR, SSIM, and LPIPS on the test split.
-
 ---
 
-## 6. Scene Complexity Scoring
+## 6. Generating Segmentation Masks
 
-Each scene is assigned a complexity score **C ∈ [0, 1]** that quantifies how difficult it is expected to be for 4DGS-class reconstruction methods. The score is a weighted sum of ten scene-level factors, each independently rated on a [0, 1] scale:
+`scripts/generate_masks.py` generates per-pixel object-ID segmentation masks aligned with a D-NeRF formatted dataset. These masks are useful for object-level evaluation — for example, computing per-object PSNR or measuring tracking accuracy independently of background reconstruction.
 
-### Factors and weights
+### How it works
 
-| Factor | Weight | Description |
-|--------|:------:|-------------|
-| `motion_speed` | 0.12 | Peak object speed relative to scene bounds. Fast motion violates temporal-continuity priors in k-planes. |
-| `num_objects` | 0.08 | Number of independently moving objects (normalised; 3+ = 1.0). More objects require more Gaussians. |
-| `occlusion` | 0.13 | Degree of complete or prolonged occlusion. Full occlusion causes hallucination and dis-occlusion artefacts. |
-| `proximity` | 0.10 | Closest inter-object separation normalised by object diameter (touching = 1.0). Nearby Gaussians blur across boundaries. |
-| `deformation` | 0.13 | Presence and magnitude of non-rigid shape change. 4DGS assumes near-rigid deformation fields. |
-| `topology` | 0.18 | Presence of topology change events (split / merge). Fixed Gaussian count cannot represent object count changes. |
-| `thin_geometry` | 0.09 | Aspect ratio of the thinnest object (rod radius / half-length). Very thin structures need many tiny anisotropic Gaussians. |
-| `scale_variation` | 0.05 | Ratio of apparent object size at closest vs farthest point. Extreme scale changes challenge level-of-detail representation. |
-| `direction_changes` | 0.07 | Number and sharpness of direction reversals. Sharp turns violate smooth motion priors in the deformation field. |
-| `texture_complexity` | 0.05 | High-frequency surface texture under rotation/translation. Appearance and geometry become entangled in Gaussian features. |
+For each frame in the D-NeRF `transforms_*.json` files, the script:
 
-### Formula
+1. **Recovers the simulation time** from the normalised `time` field in the transforms JSON.
+2. **Advances the MuJoCo scene** to that timestamp by replaying the trajectory, placing every object at its correct position.
+3. **Renders a segmentation pass** using MuJoCo's built-in segmentation renderer, which returns a per-pixel geometry ID buffer.
+4. **Maps geometry IDs to integer object labels** — `0` = background/floor, `1, 2, …` = objects in the same order as `trajectory.get_object_ids()`.
+5. **Saves a grayscale PNG** alongside the colour image at `{dnerf_dir}/{split}/masks/{image_name}.png`.
+6. **Writes `class_mapping.json`** to the scene root, mapping integer labels to object names.
 
-$$C = \sum_{i=1}^{10} w_i \cdot f_i$$
-
-where $f_i \in [0,1]$ is the factor score and $w_i$ is the factor weight, with $\sum w_i = 1$.
-
-In plain text:
-
-```
-C = 0.12·motion_speed + 0.08·num_objects + 0.13·occlusion + 0.10·proximity
-  + 0.13·deformation + 0.18·topology + 0.09·thin_geometry + 0.05·scale_variation
-  + 0.07·direction_changes + 0.05·texture_complexity
-```
-
-### Scores and ranks
-
-| Rank | Scene | Score | Primary driver(s) |
-|:----:|-------|:-----:|-------------------|
-| 1 | Scene 9 — Topology Change | 0.399 | topology (0.18 × 1.0) + proximity + deformation |
-| 2 | Scene 3 — Three-Body Collision | 0.354 | motion_speed + num_objects + proximity + occlusion |
-| 3 | Scene 7 — Deformable Collision | 0.308 | deformation (0.13 × 1.0) + proximity |
-| 4 | Scene 4 — Occlusion | 0.245 | occlusion (0.13 × 1.0) |
-| 5 | Scene 8 — Thin Structures | 0.226 | thin_geometry (0.09 × 1.0) + motion_speed |
-| 6 | Scene 2 — Identical Objects | 0.176 | proximity (0.10 × 1.0) |
-| 7 | Scene 5 — Rapid Motion | 0.171 | direction_changes (0.07 × 1.0) + motion_speed |
-| 8 | Scene 1 — Close Proximity | 0.166 | proximity + motion_speed |
-| 9 | Scene 10 — Texture + Motion | 0.125 | texture_complexity (0.05 × 1.0) |
-| 10 | Scene 6 — Scale Change | 0.117 | scale_variation (0.05 × 1.0) |
-
-The complexity scores and ranks are computed programmatically in `scripts/metrics_analysis.py`. Run `--complexity_only` to print the table without generating plots.
-
----
-
-## 7. Metrics Analysis and Visualisation
-
-`scripts/metrics_analysis.py` ingests per-iteration training metrics from three reconstruction methods and generates two families of plots.
-
-### Input format
-
-Place one JSON file per scene per method under a `metrics/` directory:
-
-```
-metrics/
-├── 3dgs/        scene1.json  …  scene10.json
-├── 4dgs/        scene1.json  …  scene10.json
-└── deformable/  scene1.json  …  scene10.json
-```
-
-Each JSON file should be a JSON array (or NDJSON) of checkpoint records:
-
-```json
-[
-    {"iteration": 1000,  "psnr": 25.3, "ssim": 0.85, "lpips": 0.12},
-    {"iteration": 7000,  "psnr": 28.1, "ssim": 0.91, "lpips": 0.08},
-    {"iteration": 30000, "psnr": 30.5, "ssim": 0.94, "lpips": 0.05}
-]
-```
-
-If a method uses different field names, fill in the corresponding `parse_3dgs` / `parse_4dgs` / `parse_deformable` placeholder function in the script.
-
-### Plot types
-
-**Type 1 — Training curves** (10 figures × 3 subplots = 30 plots)
-
-One figure per scene, three subplots (PSNR / SSIM / LPIPS), each showing all three methods as lines over training iterations. Saved to `figures/training_curves/scene{N}_training_curves.png`.
-
-**Type 2 — Eval vs complexity** (3 figures)
-
-One figure per metric; x-axis is scene complexity rank (rank 1 = most complex), y-axis is the final recorded metric value. Shows how each method degrades as scene difficulty increases. Saved to `figures/eval_vs_complexity/eval_{metric}.png`.
+The mask pixel values match the object ordering used by the trajectory, so label `1` always corresponds to the first object in `get_object_ids()`, regardless of scene.
 
 ### Usage
 
 ```bash
-# Generate all plots (expects metrics/ directory in cwd)
-python scripts/metrics_analysis.py
+# Single scene (explicit D-NeRF directory)
+python scripts/generate_masks.py --scene 1 \
+    --dnerf_dir dnerf_dataset/scene1_close_proximity
 
-# Custom paths
-python scripts/metrics_analysis.py \
-    --metrics_dir path/to/metrics \
-    --output_dir  path/to/figures
+# Single scene (auto-resolved from dnerf_dataset/)
+python scripts/generate_masks.py --scene 1
 
-# Print complexity table only — no plots
-python scripts/metrics_analysis.py --complexity_only
+# All scenes
+python scripts/generate_masks.py --all
 ```
 
 **Options:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--metrics_dir` | `metrics` | Root directory containing `3dgs/`, `4dgs/`, `deformable/` sub-dirs |
-| `--output_dir` | `figures` | Directory to write generated PNG files |
-| `--complexity_only` | — | Print complexity table and exit without generating plots |
+| `-s / --scene` | — | Scene number (1–10) |
+| `--dnerf_dir` | `dnerf_dataset/<scene_name>` | Path to the D-NeRF scene directory |
+| `--dnerf_root` | `dnerf_dataset/` | Root of all D-NeRF scenes (used with `--all`) |
+| `--fps` | `30` | FPS used when the dataset was generated |
+| `--all` | — | Process all 10 scenes |
+
+**Output structure:**
+
+```
+dnerf_dataset/scene1_close_proximity/
+├── class_mapping.json        # { "0": "background", "1": "sphere_red", ... }
+├── train/
+│   ├── r_0000.png
+│   └── masks/
+│       ├── r_0000.png        # grayscale label image (0=bg, 1=obj1, ...)
+│       └── ...
+├── val/
+│   └── masks/
+└── test/
+    └── masks/
+```
+
+---
+
+## 7. Rendering Orbit Flyarounds
+
+`scripts/render_orbit.py` renders a 360° orbit flyaround of a scene as a PNG sequence (and optionally an MP4). A virtual camera circles the scene centre while the scene animation plays once in sync.
+
+### Basic usage
 
 ```bash
-pip install matplotlib numpy
+# Single orbit (auto radius, 180 frames at 30 fps)
+python scripts/render_orbit.py --scene 1
+
+# All 10 scenes
+python scripts/render_orbit.py --all
+
+# All scenes → compile each to MP4
+python scripts/render_orbit.py --all --video
+
+# Custom radius and elevation
+python scripts/render_orbit.py --scene 3 --radius 7.0 --elevation -30
+
+# Full 360 at 60 fps → compile to MP4
+python scripts/render_orbit.py --scene 5 --num_frames 360 --fps 60 --video
+
+# Freeze scene at a specific simulation time (static pose)
+python scripts/render_orbit.py --scene 2 --freeze_time 2.5
+```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-s / --scene` | — | Scene number (1–10) |
+| `--all` | — | Render all 10 scenes; errors are reported per-scene and do not abort the run |
+| `-o / --output` | `renders` | Root output directory |
+| `--radius` | auto per scene | Orbit radius in metres |
+| `--elevation` | `-20` | Camera elevation in degrees (negative = looking down) |
+| `--num_frames` | `180` | Total orbit frames (180 → 6 s at 30 fps) |
+| `--resolution` | `800x800` | Frame resolution as `WxH` |
+| `--fps` | `30` | Playback frame rate |
+| `--freeze_time` | — | Lock scene at this simulation time (seconds) instead of animating |
+| `--video` | off | Compile frames to MP4 via ffmpeg after rendering |
+
+### Default orbit radii
+
+Radii are chosen to keep the full object trajectory in frame at 800×800 resolution:
+
+| Scene | Default radius |
+|-------|:--------------:|
+| 1, 2 | 5.0 m |
+| 3 | 7.0 m |
+| 4 | 5.5 m |
+| 5 | 6.5 m |
+| 6 | 6.5 m |
+| 7 | 6.0 m |
+| 8 | 5.5 m |
+| 9 | 3.0 m |
+| 10 | 5.0 m |
+
+### Output
+
+```
+renders/
+└── orbit_scene3/
+    ├── 00000.png
+    ├── 00001.png
+    └── ...
+renders/orbit_scene3.mp4   # only if --video is passed
 ```
 
 ---

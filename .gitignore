@@ -1,4 +1,4 @@
 __pycache__/
 dataset/
-dnerf_dataset/
+#dnerf_dataset/
 renders/

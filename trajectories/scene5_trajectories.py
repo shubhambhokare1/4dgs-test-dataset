@@ -55,5 +55,8 @@ class Scene5Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        return {'type': 'sphere', 'radius': 0.3}
+
     def get_description(self) -> str:
         return "Zigzag motion with 90° direction changes every 1.6s"

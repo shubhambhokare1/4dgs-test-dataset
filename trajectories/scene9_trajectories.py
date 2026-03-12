@@ -62,5 +62,27 @@ class Scene9Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['droplet_1', 'droplet_2']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        # Compute current separation (mirrors the logic in get_object_state)
+        time = np.clip(time, 0, self.duration)
+        if time < self.split_start:
+            sep = 0.0
+        elif time < self.split_end:
+            sep = self.separation * (time - self.split_start) / (self.split_end - self.split_start)
+        elif time < self.merge_start:
+            sep = self.separation
+        elif time < self.merge_end:
+            sep = self.separation * (1.0 - (time - self.merge_start) / (self.merge_end - self.merge_start))
+        else:
+            sep = 0.0
+
+        # When merged (sep=0), both droplets occupy the same volume — use a
+        # larger merged-blob radius.  When fully split, each droplet is smaller.
+        merged_radius = 0.40   # combined blob radius
+        split_radius  = 0.28   # individual droplet radius
+        t_split = sep / self.separation if self.separation > 0 else 0.0
+        radius = merged_radius + (split_radius - merged_radius) * t_split
+        return {'type': 'sphere', 'radius': float(radius)}
+
     def get_description(self) -> str:
         return "Blob splits into two droplets, then merges back - tests topology changes"

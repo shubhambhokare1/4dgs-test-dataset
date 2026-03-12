@@ -47,5 +47,10 @@ class Scene6Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        # Physical sphere radius is constant at 0.3m — the "scale change" is
+        # apparent size in camera due to depth variation, not actual size change.
+        return {'type': 'sphere', 'radius': 0.3}
+
     def get_description(self) -> str:
         return "Sphere moves top-left → bottom center → top-right with extreme scale changes"

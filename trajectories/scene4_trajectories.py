@@ -57,5 +57,13 @@ class Scene4Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere', 'wall']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        if object_id == 'sphere':
+            return {'type': 'sphere', 'radius': 0.3}
+        elif object_id == 'wall':
+            # Thin wall: narrow in X, extended in Y and Z
+            return {'type': 'obb', 'half_extents': np.array([0.05, 0.4, 1.0])}
+        raise ValueError(f"Unknown object_id: {object_id}")
+
     def get_description(self) -> str:
         return "Sphere orbits quickly around narrow wall - tests occlusion"

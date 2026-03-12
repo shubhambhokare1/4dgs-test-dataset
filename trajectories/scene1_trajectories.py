@@ -45,6 +45,9 @@ class Scene1Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere_red', 'sphere_blue']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        return {'type': 'sphere', 'radius': 0.3}
+
     def get_description(self) -> str:
         return "Two different-colored spheres passing within 15cm of each other"
     

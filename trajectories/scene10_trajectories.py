@@ -52,5 +52,8 @@ class Scene10Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['textured_sphere']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        return {'type': 'sphere', 'radius': 0.3}
+
     def get_description(self) -> str:
         return "Checkerboard-textured sphere orbiting and spinning - tests texture preservation"

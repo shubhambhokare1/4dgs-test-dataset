@@ -88,5 +88,14 @@ class Scene7Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere', 'cube']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        if object_id == 'sphere':
+            # Sphere compresses up to 30cm during contact — expand bound slightly
+            # to avoid penalising surface Gaussians during deformation phase.
+            return {'type': 'sphere', 'radius': self.sphere_radius + self.max_deformation}
+        elif object_id == 'cube':
+            return {'type': 'obb', 'half_extents': np.array([self.cube_half_size] * 3)}
+        raise ValueError(f"Unknown object_id: {object_id}")
+
     def get_description(self) -> str:
         return "Sphere bounces off cube with slow, prominent deformation (30cm compression)"

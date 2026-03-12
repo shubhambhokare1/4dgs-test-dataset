@@ -90,5 +90,11 @@ class Scene8Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['rod_moving', 'rod_rotating']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        # Both rods are capsules oriented along their local X-axis (after the
+        # 90° Y-rotation applied in get_object_state).
+        # half_length = 1.0m (2m total rod length), radius = 0.06m.
+        return {'type': 'capsule', 'half_length': 1.0, 'radius': 0.06}
+
     def get_description(self) -> str:
         return "Two thin rods - one translating horizontally, one rotating (3 revolutions)"

@@ -40,5 +40,8 @@ class Scene2Trajectory(TrajectoryBase):
     def get_object_ids(self) -> List[str]:
         return ['sphere_1', 'sphere_2']
     
+    def get_object_bounds(self, time: float, object_id: str) -> dict:
+        return {'type': 'sphere', 'radius': 0.3}
+
     def get_description(self) -> str:
         return "Two identical white spheres with crossing paths - tests identity tracking"

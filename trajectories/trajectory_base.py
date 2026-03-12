@@ -57,6 +57,23 @@ class TrajectoryBase(ABC):
         """Return human-readable description of what this trajectory tests."""
         pass
     
+    def get_object_bounds(self, time: float, object_id: str) -> Dict:
+        """
+        Return the bounding volume for *object_id* at *time*.
+
+        Subclasses should override this with accurate per-object geometry.
+        The default returns a sphere of radius 0.35 m — suitable for small
+        props but should be overridden for non-spherical objects.
+
+        Return format:
+            {'type': 'sphere',   'radius': float}
+            {'type': 'capsule',  'half_length': float, 'radius': float}
+                # capsule axis = local X-axis (from get_object_state quaternion)
+            {'type': 'obb',      'half_extents': np.array([hx, hy, hz])}
+                # OBB orientation = get_object_state quaternion
+        """
+        return {'type': 'sphere', 'radius': 0.35}
+
     def get_metadata(self) -> Dict:
         """Return metadata about the trajectory."""
         return {

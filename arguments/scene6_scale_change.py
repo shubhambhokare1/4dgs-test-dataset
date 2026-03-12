@@ -15,3 +15,7 @@ OptimizationParams = dict(
     densify_grad_threshold_fine_init = 0.0001,
     densify_grad_threshold_after = 0.0001,
 )
+
+ModelParams = dict(
+    white_background = False,
+)

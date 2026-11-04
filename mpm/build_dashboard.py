@@ -78,6 +78,37 @@ def thumb(src, dst, size=320):
     return dst
 
 
+def one_camera_video(exp, n_cams, rank, dst, fps):
+    """Cut one training camera out of render.py's train renders.
+
+    The export lists every camera at frame 0, then every camera at frame 1, ...,
+    so render index i is camera i % n_cams. Needs ffmpeg; returns None without it.
+    """
+    runs = sorted((exp / "train").glob("ours_*/renders"), key=lambda p: int(p.parent.name.split("_")[-1]))
+    ff = shutil.which("ffmpeg")
+    if not ff:
+        try:  # the binary that ships with imageio[ffmpeg] (installed for 4DGaussians)
+            import imageio_ffmpeg
+            ff = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            ff = None
+    if not runs or not ff:
+        return None
+    files = sorted(runs[-1].glob("*.png"), key=lambda p: int(p.stem))
+    pick = [f for f in files if int(f.stem) % n_cams == rank]
+    if not pick:
+        return None
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    lst = dst.with_suffix(".txt")
+    lst.write_text("".join(f"file '{f.resolve()}'\nduration {1 / fps:.6f}\n" for f in pick))
+    import subprocess
+    r = subprocess.run([ff, "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+                        "-vf", f"fps={fps},scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx264",
+                        "-pix_fmt", "yuv420p", str(dst)])
+    lst.unlink()
+    return dst if r.returncode == 0 and dst.exists() else None
+
+
 def scene_payload(sdir, results_root, out_dir):
     sdir = Path(sdir)
     name = sdir.name
@@ -131,6 +162,7 @@ def scene_payload(sdir, results_root, out_dir):
         src = sdir / "images" / show_cam / f"{f:05d}.png"
         video["gt"].append(str(thumb(src, vid_dir / f"gt_{f:05d}.jpg", 256).relative_to(out_dir))
                            if src.exists() else None)
+    train_cam_rank = 0  # cam00, the first camera of every subset
     metrics, renders, per_time, mp4s = {}, {}, {}, {}
     for n in rig["subsets"]:
         exp = Path(results_root) / name / f"cams_{n:02d}" if results_root else None
@@ -139,6 +171,11 @@ def scene_payload(sdir, results_root, out_dir):
         for kind in ("test", "train", "video"):
             runs = sorted((exp / kind).glob("ours_*/video_rgb.mp4"),
                           key=lambda p: int(p.parent.name.split("_")[-1])) if exp and (exp / kind).exists() else []
+            if kind == "train" and exp and (exp / "train").exists():
+                one = one_camera_video(exp, n, train_cam_rank, img_dir / "mp4" / f"cams{n:02d}_train.mp4", scene["fps"])
+                if one:
+                    mp4s.setdefault(n, {})["train"] = str(one.relative_to(out_dir))
+                    continue
             if runs:
                 dst = img_dir / "mp4" / f"cams{n:02d}_{kind}.mp4"
                 dst.parent.mkdir(parents=True, exist_ok=True)
@@ -309,7 +346,7 @@ function sceneView(si){
       <span class="lab" id="vlabel" style="align-self:center;min-width:120px"></span></div>
     <div id="video"></div></section>
   <section class="card"><h2>4DGaussians videos (video_rgb.mp4)</h2>
-    <p class="lab">Test set: the 8 held-out cameras, one after another. Train set: the training cameras in the order 4DGaussians stores them (every camera at frame 0, then frame 1, ...), so it jumps between views. Orbit: the 4DGaussians moving camera over the whole sequence.</p>
+    <p class="lab">Test set: the 8 held-out cameras, one after another. Train set: training camera cam00 (in every subset), cut from the train renders. Orbit: the 4DGaussians moving camera over the whole sequence.</p>
     <div id="mp4s"></div></section>
   <section class="card"><h2>Renders from ${s.show_cam} (held out)</h2><div id="renders"></div></section>`;
 
@@ -364,7 +401,7 @@ function sceneView(si){
     + srcs.map((col,j)=>col.length&&col[0]?`<img data-col="${j}" alt="${vcols[j]}">`:`<div class="ph">not trained yet</div>`).join("") + "</div>";
   srcs.forEach(col=>col.forEach(u=>{if(u){const im=new Image();im.src=u;}}));  // preload
   const vid = (u,t) => u?`<video src="${u}" controls loop muted playsinline preload="metadata" title="${t}" style="width:100%;border-radius:6px;background:#000"></video>`:`<div class="ph">${t}</div>`;
-  const kinds = [["test","Test set"],["train","Train set"],["video","Orbit"]];
+  const kinds = [["test","Test set"],["train","Train set (cam00)"],["video","Orbit"]];
   const M = n => s.mp4s[n]||{};
   document.getElementById("mp4s").innerHTML = `<div class="grid" style="--cols:${s.subsets.length+1};grid-template-columns:90px repeat(${s.subsets.length},minmax(0,1fr))"><div></div>`
     + s.subsets.map(n=>`<div class="lab">${n} cams</div>`).join("")

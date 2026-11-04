@@ -267,7 +267,8 @@ function sceneView(si){
   <p class="lab">MPM: grid ${s.solver.grid.join("×")}, dx ${s.solver.dx} m, ${s.solver.particles.toLocaleString()} particles, ${s.n_frames} frames at ${s.fps} fps. Peak strain at frame ${s.peak_frame}.</p></section>
   <div class="row2">
    <section class="card"><h2>Camera rig and point cloud</h2>
-    <div class="seg" id="cloudsel">${cloudKeys.map((k,i)=>`<button aria-pressed="${i===0}" data-k="${k}">${k==="sim"?"MPM particles (t=0)":"Gaussians, "+k.split("_")[1]+" cams"}</button>`).join("")}</div>
+    <div class="seg" id="camsel"><span class="lab" style="align-self:center">Cameras:</span>${s.subsets.map(n=>`<button aria-pressed="${n===Math.max(...s.subsets)}" data-n="${n}">${n}</button>`).join("")}</div>
+    <div class="seg" id="cloudsel"><span class="lab" style="align-self:center">Points:</span>${cloudKeys.map((k,i)=>`<button aria-pressed="${i===0}" data-k="${k}">${k==="sim"?"MPM particles (t=0)":"Gaussians, "+k.split("_")[1]+" cams"}</button>`).join("")}</div>
     <div id="rig" class="plot3d"></div>
     <div class="legend">${[4,8,12,25,50].filter(n=>n<=Math.max(...s.subsets)).map(n=>`<span><span class="sw" style="background:${css("--t"+n)}"></span>in ${n}-cam set</span>`).join("")}<span><span class="sw" style="background:${css("--test")}"></span>held-out test</span></div>
    </section>
@@ -276,9 +277,11 @@ function sceneView(si){
   <section class="card"><h2>Renders from ${s.show_cam} (held out)</h2><div id="renders"></div></section>`;
 
   let cloud = cloudKeys[0];
+  let camN = Math.max(...s.subsets);
   const drawRig = () => {
     const traces = [];
     for (const t of [4,8,12,25,50,"test"]){
+      if (t !== "test" && t > camN) continue;
       const cs = s.cams.filter(c=>c.tier===t); if(!cs.length) continue;
       const x=[],y=[],z=[],txt=[];
       for (const c of cs){x.push(...c.x);y.push(...c.y);z.push(...c.z);txt.push(...c.x.map(()=>c.name));}
@@ -293,6 +296,8 @@ function sceneView(si){
       camera:{eye:{x:1.3,y:1.3,z:.9}}}},cfg);
   };
   drawRig();
+  document.querySelectorAll("#camsel button").forEach(b=>b.onclick=()=>{camN=+b.dataset.n;
+    document.querySelectorAll("#camsel button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawRig();});
   document.querySelectorAll("#cloudsel button").forEach(b=>b.onclick=()=>{cloud=b.dataset.k;
     document.querySelectorAll("#cloudsel button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawRig();});
 

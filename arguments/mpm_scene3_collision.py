@@ -22,5 +22,8 @@ OptimizationParams = dict(
 )
 
 ModelParams = dict(
-    white_background = False,  # images are opaque (white sky + floor), so this has no effect
+    # The background is white, so let the rasterizer use white for empty space.
+    # With black, 4DGS has to fill the whole volume with white Gaussians to
+    # match the white sky, and with few cameras that white fog hides the objects.
+    white_background = True,
 )

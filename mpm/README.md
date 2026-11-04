@@ -101,7 +101,7 @@ Useful options:
   the render across GPUs or machines. Finished images are skipped.
 * `export_4dgs.py --frame-step 2 --test-frame-step 2` halves the frame count
   (see the memory note below). `--init sim|random|both` chooses the starting
-  point cloud.
+  point cloud (default `sim`: object surfaces and the floor at t = 0).
 
 ## Cameras
 
@@ -140,8 +140,9 @@ reader:
   multi-view, unlike `scripts/dnerf_eq.py`, which picks one camera per
   timestamp).
 * `transforms_test.json` holds the 8 test cameras.
-* `fused.ply` is the initial point cloud: the object surfaces at t = 0 plus
-  50k random points within `bounds`. It is the same for every subset.
+* `fused.ply` is the initial point cloud: the object surfaces and the floor
+  at t = 0. It is the same for every subset. The configs set
+  `white_background = True`, so empty space renders white like the sky.
 * `test_index.json` maps each render index back to its camera and frame.
 
 Images are referenced as `../../images/...` and are not copied.

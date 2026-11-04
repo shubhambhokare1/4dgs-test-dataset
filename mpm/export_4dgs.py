@@ -75,6 +75,13 @@ def initial_points(sdir, meta, mode, n_random, bounds, offset, seed=0):
             p[np.arange(3000), ax] = np.sign(p[np.arange(3000), ax])
             pts.append(c + p * h + offset)
             cols.append(np.tile(np.round(np.asarray(s["color"]) * 255), (3000, 1)))
+    if mode in ("sim", "both"):
+        # the floor (white, carries the shadows), as a square around the target
+        n_floor = 20000
+        xy = rng.uniform(-bounds, bounds, (n_floor, 2))
+        z = np.full((n_floor, 1), meta["floor_z"] + offset[2])
+        pts.append(np.hstack([xy, z]))
+        cols.append(np.full((n_floor, 3), 235))
     if mode in ("random", "both"):
         # same recipe as scripts/dnerf_eq.py: uniform cube, random colours
         pts.append(rng.uniform(-bounds, bounds, (n_random, 3)))
@@ -101,7 +108,9 @@ def main():
     ap.add_argument("--subsets", type=int, nargs="+", default=None)
     ap.add_argument("--frame-step", type=int, default=1, help="use every k-th frame for training")
     ap.add_argument("--test-frame-step", type=int, default=1, help="use every k-th frame for testing")
-    ap.add_argument("--init", choices=["random", "sim", "both"], default="both")
+    ap.add_argument("--init", choices=["random", "sim", "both"], default="sim",
+                    help="sim: object surfaces + floor at t=0 (default); random: uniform cube "
+                         "like scripts/dnerf_eq.py; both: union")
     ap.add_argument("--n-random", type=int, default=50000)
     ap.add_argument("--copy", action="store_true", help="copy images instead of relative links")
     args = ap.parse_args()

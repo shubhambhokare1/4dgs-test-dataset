@@ -9,7 +9,7 @@
 source "$(dirname "$0")/_common.sh"
 S=$(scene_name "$1"); shift
 D="$OUT/$S"
-blender_py --scene-dir "$D" "$@" 2>&1 | grep -E --line-buffered "^frame|TIMING|verified|Cycles on|WARNING|Error|Traceback" || true
+blender_py --scene-dir "$D" "$@" 2>&1 | grep -E -i --line-buffered "^frame|TIMING|verified|Cycles on|WARNING|error|Traceback|usage|only [0-9]+ .* devices" || true
 PK=$(peak_frame "$D")
 "$PY" "$REPO/mpm/preview.py" cams --scene-dir "$D" --frame "$PK"
 "$PY" "$REPO/mpm/preview.py" camgif --scene-dir "$D" --cam cam00 --every 2

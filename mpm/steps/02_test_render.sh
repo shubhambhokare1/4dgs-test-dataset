@@ -12,7 +12,7 @@ PK=$(peak_frame "$D")
 for F in 0 "$PK"; do
   blender_py --scene-dir "$D" --images-dir images_test --overwrite \
     --cams cam00,cam04,cam08,cam10,cam30,test00 --frames "$F:$((F + 1))" "$@" 2>&1 \
-    | grep -E "TIMING|verified|Cycles on|WARNING|Error|Traceback" || true
+    | grep -E -i "TIMING|verified|Cycles on|WARNING|error|Traceback|usage|only [0-9]+ .* devices" || true
 done
 "$PY" -c "
 import sys; sys.path.insert(0, '$REPO/mpm')

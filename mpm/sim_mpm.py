@@ -362,9 +362,14 @@ def main():
     ap.add_argument("--E", type=float, nargs="+", default=None,
                     help="explicit Young's modulus per deformable object (Pa)")
     ap.add_argument("--cfl", type=float, default=0.3)
+    ap.add_argument("--overwrite", action="store_true",
+                    help="re-simulate even if sim.npz exists (existing renders would no longer match)")
     args = ap.parse_args()
 
     scene = get_scene(args.scene)
+    if (Path(args.out) / scene["name"] / "sim.npz").exists() and not args.overwrite:
+        print(f"{scene['name']}: sim.npz exists, skipping (use --overwrite to re-run)")
+        return
     if args.duration:
         scene["duration"] = args.duration
     if args.E:

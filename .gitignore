@@ -1,4 +1,5 @@
 __pycache__/
 dataset/
 dnerf_dataset/
-renders/
+renders/out/
+dashboard/

@@ -23,6 +23,17 @@ All scenes use a white floor and white skybox to isolate object appearance from 
 
 ---
 
+## MPM versions of scenes 3 and 7
+
+`mpm/` has physically simulated versions of scene 3 (three balls with
+different Young's moduli) and scene 7 (a soft ball against a rigid cube).
+They are simulated with MPM, rendered in Blender from a nested 4/8/12/25/50
+camera rig plus 8 held-out cameras, and exported for multi-view 4DGS. The
+folder also has the camera-count study and its dashboard. See
+[`mpm/README.md`](mpm/README.md).
+
+---
+
 ## Pipeline Overview
 
 ```

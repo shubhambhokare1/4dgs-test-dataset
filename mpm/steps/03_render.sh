@@ -3,8 +3,8 @@
 # command after a crash and finished images are skipped.
 #   bash mpm/steps/03_render.sh 7
 #   bash mpm/steps/03_render.sh 7 --samples 32
-#   CUDA_VISIBLE_DEVICES=0 bash mpm/steps/03_render.sh 7 --cams train   # split across GPUs
-#   CUDA_VISIBLE_DEVICES=1 bash mpm/steps/03_render.sh 7 --cams test
+#   bash mpm/steps/03_render.sh 7 --cams train --gpu 0   # split across GPUs
+#   bash mpm/steps/03_render.sh 7 --cams test  --gpu 2   # (--gpu = nvidia-smi index)
 # Use the same render settings for every part of a scene.
 source "$(dirname "$0")/_common.sh"
 S=$(scene_name "$1"); shift

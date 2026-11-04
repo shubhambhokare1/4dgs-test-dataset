@@ -44,6 +44,8 @@ def parse_args():
     ap.add_argument("--engine", default="CYCLES", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--samples", type=int, default=64)
     ap.add_argument("--device", default="GPU", choices=["GPU", "CPU"])
+    ap.add_argument("--gpu", type=int, default=None,
+                    help="use only this GPU (nvidia-smi index). Leave CUDA_VISIBLE_DEVICES unset")
     ap.add_argument("--texture", default="spots", choices=["spots", "plain"],
                     help="dark spots on the deformable objects make motion and "
                          "deformation observable (plain = flat colour like the old dataset)")
@@ -55,6 +57,13 @@ def parse_args():
 
 
 # ------------------------------------------------------------------ scene building
+def pci_key(dev):
+    """Sort key: the PCI address in a Cycles device id, which matches nvidia-smi's order."""
+    import re
+    m = re.search(r"([0-9a-fA-F]{4}:)?[0-9a-fA-F]{2}:[0-9a-fA-F]{2}(\.[0-9])?", dev.id)
+    return m.group(0).lower() if m else dev.id
+
+
 def setup_render(args):
     scene = bpy.context.scene
     scene.render.resolution_x = scene.render.resolution_y = args.res
@@ -78,13 +87,22 @@ def setup_render(args):
                 except TypeError:
                     continue
                 prefs.get_devices()
-                gpus = [d for d in prefs.devices if d.type != "CPU"]
-                if gpus:
-                    for d in prefs.devices:
-                        d.use = d.type != "CPU"
-                    scene.cycles.device = "GPU"
-                    print(f"Cycles on {backend}: {[d.name for d in gpus]}")
-                    break
+                gpus = sorted((d for d in prefs.devices if d.type == backend), key=pci_key)
+                if not gpus:
+                    continue
+                if args.gpu is not None:
+                    if not 0 <= args.gpu < len(gpus):
+                        raise SystemExit(f"--gpu {args.gpu}: only {len(gpus)} {backend} devices: "
+                                         f"{[d.id for d in gpus]}")
+                    chosen = [gpus[args.gpu]]
+                else:
+                    chosen = gpus
+                for d in prefs.devices:
+                    d.use = any(d.id == c.id for c in chosen)
+                scene.cycles.device = "GPU"
+                print(f"Cycles on {backend}: using {[d.id for d in chosen]} "
+                      f"(of {len(gpus)} GPUs, ordered by PCI bus = nvidia-smi index)")
+                break
             else:
                 print("WARNING: no GPU found for Cycles, rendering on CPU")
     else:

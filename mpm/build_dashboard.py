@@ -178,7 +178,8 @@ HTML = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Camera count study</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"></script>
+<script src="plotly.min.js"></script>
+<script>window.Plotly||document.write('<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"><\/script>')</script>
 <style>
 :root{color-scheme:light;--page:#f9f9f7;--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
 --grid:#e1e0d9;--axis:#c3c2b7;--ring:rgba(11,11,11,.10);--s1:#2a78d6;--s2:#eb6834;--test:#eb6834;
@@ -227,6 +228,8 @@ scored on the same 8 held-out cameras. Scenes simulated with MPM, rendered in Bl
 <div id="scene"></div>
 </main>
 <script>
+if (!window.Plotly) document.querySelector("main").insertAdjacentHTML("afterbegin",
+  '<p class="card" style="border-color:#e34948">Charts could not load: plotly.min.js is missing next to index.html and the CDN is unreachable. Re-run build_dashboard.py with `pip install plotly` or internet access, and copy the whole dashboard/ folder.</p>');
 const DATA = __DATA__;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const tierVar = t => t === "test" ? "--test" : "--t" + t;
@@ -335,6 +338,38 @@ new MutationObserver(redraw).observe(document.documentElement,{attributes:true,a
 """
 
 
+PLOTLY_URLS = [
+    "https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js",
+]
+
+
+def bundle_plotly(out):
+    """Put plotly.min.js next to index.html so the dashboard works offline."""
+    dst = out / "plotly.min.js"
+    if dst.exists() and dst.stat().st_size > 1_000_000:
+        return True
+    try:  # the plotly Python package ships the JS bundle
+        import plotly
+        src = Path(plotly.__file__).parent / "package_data" / "plotly.min.js"
+        if src.exists():
+            shutil.copy(src, dst)
+            return True
+    except ImportError:
+        pass
+    import urllib.request
+    for url in PLOTLY_URLS:
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                dst.write_bytes(r.read())
+            return True
+        except Exception:
+            continue
+    print("WARNING: could not bundle plotly.min.js (pip install plotly, or allow internet); "
+          "the page will try to load it from the CDN instead")
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--scene-dirs", nargs="+", required=True)
@@ -346,6 +381,7 @@ def main():
     if (out / "img").exists():
         shutil.rmtree(out / "img")
     out.mkdir(parents=True, exist_ok=True)
+    bundle_plotly(out)
     data = dict(scenes=[scene_payload(s, args.results_root, out) for s in args.scene_dirs])
     (out / "index.html").write_text(HTML.replace("__DATA__", json.dumps(data, separators=(",", ":"))))
     (out / "data.json").write_text(json.dumps(data))

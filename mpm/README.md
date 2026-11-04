@@ -41,7 +41,7 @@ build_dashboard.py  static dashboard        -> dashboard/index.html
 ### Setup (lab server)
 
 ```bash
-pip install warp-lang numpy pillow
+pip install warp-lang numpy pillow plotly   # plotly only to bundle the dashboard charts
 pip install bpy                     # or install Blender and set BLENDER=/path/to/blender
 git clone https://github.com/hustvl/4DGaussians   # and follow its install steps
 ```

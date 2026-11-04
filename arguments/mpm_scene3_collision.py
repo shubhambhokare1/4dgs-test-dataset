@@ -12,6 +12,10 @@ ModelHiddenParams = dict(
 )
 
 OptimizationParams = dict(
+    # Shortened for a proof of concept (base config: 20000 / 17000).
+    # Keep the same for every camera subset so results stay comparable.
+    iterations = 14000,
+    densify_until_iter = 11000,
     densify_grad_threshold_coarse = 0.0001,
     densify_grad_threshold_fine_init = 0.0001,
     densify_grad_threshold_after = 0.0001,

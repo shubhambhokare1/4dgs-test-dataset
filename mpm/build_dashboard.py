@@ -133,6 +133,9 @@ def scene_payload(sdir, results_root, out_dir):
             its = sorted((exp / "point_cloud").glob("iteration_*"), key=lambda p: int(p.name.split("_")[-1]))
             if its and (its[-1] / "point_cloud.ply").exists():
                 xyz = read_ply_xyz(its[-1] / "point_cloud.ply")
+                tf = sdir / "4dgs" / f"cams_{n:02d}" / "transforms_train.json"
+                if tf.exists():  # back from the exported (target-centred) frame to world
+                    xyz = xyz - np.asarray(json.load(open(tf)).get("world_offset", [0, 0, 0]))
                 clouds[f"gaussians_{n}"] = dict(x=xyz[:, 0].round(4).tolist(), y=xyz[:, 1].round(4).tolist(),
                                                 z=xyz[:, 2].round(4).tolist(), color=None)
         if not (exp and (exp / "results.json").exists()):

@@ -50,7 +50,34 @@ git clone https://github.com/hustvl/4DGaussians   # and follow its install steps
 and bpy 4.x needs 3.11). If that clashes with your 4DGaussians environment, keep
 two environments, or use a Blender binary through `BLENDER=`.
 
-### Run
+### Run step by step (recommended)
+
+Each step is a separate script. It saves preview images to
+`out/<scene>/preview/` and ends with a `>>> Look at:` line saying what to
+check before you move on. Scenes are given as `3` or `7`. Extra arguments are
+passed through to the underlying Python script.
+
+```bash
+bash mpm/steps/01_simulate.sh 7        # sim.gif, strain.png: objects collide and rebound, nothing explodes
+bash mpm/steps/02_test_render.sh 7     # render_test.jpg: 6 cameras at frame 0 and at impact,
+                                       #   plus a TIMING line estimating the full render time
+bash mpm/steps/03_render.sh 7          # the full render (resumable); all cameras at impact + GIFs
+bash mpm/steps/04_check_cameras.sh 7   # projection_check/overview.jpg: projected mesh lands on the objects
+bash mpm/steps/05_export.sh 7          # 4DGS folders; re-reads the cameras the way 4DGaussians does
+FOURDGS_ROOT=~/4DGaussians bash mpm/steps/06_train.sh 7 04   # one subset: GT vs prediction
+FOURDGS_ROOT=~/4DGaussians bash mpm/steps/07_dashboard.sh    # dashboard from whatever has finished
+```
+
+Re-running a step is safe. `01` skips a scene that has already been
+simulated (pass `--overwrite` to redo it; existing renders would then no
+longer match). `03` skips images that already exist. Try render settings in
+`02` (for example `--samples 32` or `--engine EEVEE`), then pass the same
+settings to `03`. `PY=python3` and `OUT=/data/out` override the Python
+binary and the output folder.
+
+You can also look at things by hand: `python mpm/preview.py --help`.
+
+### Run everything in one go
 
 ```bash
 bash mpm/run_pipeline.sh                                   # simulate, render, check, export
@@ -118,6 +145,15 @@ reader:
 * `test_index.json` maps each render index back to its camera and frame.
 
 Images are referenced as `../../images/...` and are not copied.
+
+**World offset:** the exported datasets are shifted so that the rig's look-at
+target sits at the origin. The shift is stored as `world_offset` in each
+`transforms_*.json`. This works around a quirk in 4DGaussians' Blender
+reader, which computes `T = -inv(c2w)[:3, 3]` and so gets the sign of the
+camera x-translation wrong. That is harmless when the cameras look at the
+origin (as in D-NeRF), but wrong otherwise. The old scene 7 export (target at
+x = -1) was affected. `05_export.sh` checks that the cameras round-trip
+exactly.
 
 **Memory:** 4DGaussians loads every training image into RAM at 800×800
 float32, about 7.7 MB each. The 50-camera subset with 91 frames needs about

@@ -49,6 +49,8 @@ def parse_args():
                          "deformation observable (plain = flat colour like the old dataset)")
     ap.add_argument("--no-floor", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--images-dir", default="images",
+                    help="output folder inside scene-dir (use another name for test renders)")
     return ap.parse_args(argv)
 
 
@@ -285,13 +287,13 @@ def main():
     n_frames = len(sim["times"])
     frames = list(range(n_frames))[slice(*[int(p) if p else None for p in args.frames.split(":")])]
 
-    total, done, t0 = len(frames) * len(names), 0, time.time()
+    total, done, rendered, t0 = len(frames) * len(names), 0, 0, time.time()
     for f in frames:
         for mesh, verts in meshes:
             mesh.vertices.foreach_set("co", verts[f].astype(np.float32).ravel())
             mesh.update()
         for name in names:
-            path = sdir / "images" / name / f"{f:05d}.png"
+            path = sdir / args.images_dir / name / f"{f:05d}.png"
             done += 1
             if path.exists() and not args.overwrite:
                 continue
@@ -299,8 +301,14 @@ def main():
             scene.camera = cam_objs[name]
             scene.render.filepath = str(path)
             bpy.ops.render.render(write_still=True)
+            rendered += 1
         el = time.time() - t0
         print(f"frame {f}: {done}/{total} images, {el:.0f}s elapsed", flush=True)
+    if rendered:
+        per = (time.time() - t0) / rendered
+        full = per * n_frames * len(rig["cameras"])
+        print(f"TIMING: {per:.2f} s/image over {rendered} images; all {len(rig['cameras'])} cams x "
+              f"{n_frames} frames would take ~{full / 3600:.1f} h with these settings")
 
 
 if __name__ == "__main__":

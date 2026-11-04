@@ -110,7 +110,17 @@ def main():
     print(json.dumps(summary, indent=1))
     for r in bad[:10]:
         print("  low:", r)
-    print(f"overlays + report in {odir}")
+    overlays = sorted(odir.glob("*.png"))[:40]
+    if overlays:
+        from preview import sheet, label
+        tiles = []
+        for p in overlays:
+            t = Image.open(p).convert("RGB")
+            t.thumbnail((220, 220))
+            tiles.append(label(t, p.stem, size=11))
+        sheet(tiles, 8).save(odir / "overview.jpg", quality=90)
+    print(f"overlays + report in {odir}  (overview: {odir / 'overview.jpg'}; "
+          f"black dots = projected mesh vertices, they should sit on the objects)")
     return 1 if bad else 0
 
 

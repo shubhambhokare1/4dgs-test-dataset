@@ -134,9 +134,9 @@ def scene_payload(sdir, results_root, out_dir):
     metrics, renders, per_time, mp4s = {}, {}, {}, {}
     for n in rig["subsets"]:
         exp = Path(results_root) / name / f"cams_{n:02d}" if results_root else None
-        # 4DGaussians' own render.py videos: test/ours_<it>/video_rgb.mp4 (every held-out
-        # view in sequence) and video/ours_<it>/video_rgb.mp4 (orbit, only without --skip_video)
-        for kind in ("test", "video"):
+        # 4DGaussians' own render.py videos, <kind>/ours_<it>/video_rgb.mp4:
+        # test (held-out views), train (training views), video (orbit)
+        for kind in ("test", "train", "video"):
             runs = sorted((exp / kind).glob("ours_*/video_rgb.mp4"),
                           key=lambda p: int(p.parent.name.split("_")[-1])) if exp and (exp / kind).exists() else []
             if runs:
@@ -309,7 +309,7 @@ function sceneView(si){
       <span class="lab" id="vlabel" style="align-self:center;min-width:120px"></span></div>
     <div id="video"></div></section>
   <section class="card"><h2>4DGaussians videos (video_rgb.mp4)</h2>
-    <p class="lab">Test video: all 8 held-out cameras one after another. Orbit: a moving camera (only if render.py ran without --skip_video).</p>
+    <p class="lab">Test set: the 8 held-out cameras, one after another. Train set: the training cameras in the order 4DGaussians stores them (every camera at frame 0, then frame 1, ...), so it jumps between views. Orbit: the 4DGaussians moving camera over the whole sequence.</p>
     <div id="mp4s"></div></section>
   <section class="card"><h2>Renders from ${s.show_cam} (held out)</h2><div id="renders"></div></section>`;
 
@@ -364,11 +364,12 @@ function sceneView(si){
     + srcs.map((col,j)=>col.length&&col[0]?`<img data-col="${j}" alt="${vcols[j]}">`:`<div class="ph">not trained yet</div>`).join("") + "</div>";
   srcs.forEach(col=>col.forEach(u=>{if(u){const im=new Image();im.src=u;}}));  // preload
   const vid = (u,t) => u?`<video src="${u}" controls loop muted playsinline preload="metadata" title="${t}" style="width:100%;border-radius:6px;background:#000"></video>`:`<div class="ph">${t}</div>`;
-  const hasOrbit = s.subsets.some(n=>(s.mp4s[n]||{}).video);
-  document.getElementById("mp4s").innerHTML = `<div class="grid" style="--cols:${s.subsets.length};grid-template-columns:repeat(${s.subsets.length},minmax(0,1fr))">`
+  const kinds = [["test","Test set"],["train","Train set"],["video","Orbit"]];
+  const M = n => s.mp4s[n]||{};
+  document.getElementById("mp4s").innerHTML = `<div class="grid" style="--cols:${s.subsets.length+1};grid-template-columns:90px repeat(${s.subsets.length},minmax(0,1fr))"><div></div>`
     + s.subsets.map(n=>`<div class="lab">${n} cams</div>`).join("")
-    + s.subsets.map(n=>vid((s.mp4s[n]||{}).test, (s.mp4s[n]||{}).test?n+" cams, test":"not rendered yet")).join("")
-    + (hasOrbit ? s.subsets.map(n=>vid((s.mp4s[n]||{}).video, (s.mp4s[n]||{}).video?n+" cams, orbit":"no orbit video")).join("") : "")
+    + kinds.map(([k,lab])=>`<div class="lab" style="align-self:center">${lab}</div>`
+        + s.subsets.map(n=>vid(M(n)[k], M(n)[k]?`${n} cams, ${lab.toLowerCase()}`:"not rendered yet")).join("")).join("")
     + "</div>";
   const slider = document.getElementById("vslider"), label = document.getElementById("vlabel"), btn = document.getElementById("vplay");
   const show = k => {

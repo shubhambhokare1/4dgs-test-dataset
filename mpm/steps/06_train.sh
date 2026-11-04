@@ -9,6 +9,11 @@ S=$(scene_name "$1"); N=$(printf %02d "$((10#$2))"); shift 2
 EXP="${EXP_ROOT:-mpm_study}/$S/cams_$N"
 CFG="$REPO/arguments/mpm_$S.py"
 cd "$FOURDGS_ROOT"
+if [ -f "output/$EXP/results.json" ] && [ -z "${RETRAIN:-}" ]; then
+  echo "$EXP already trained (set RETRAIN=1 to train again); making the preview only"
+  "$PY" "$REPO/mpm/preview.py" compare --scene-dir "$OUT/$S" --model-path "$FOURDGS_ROOT/output/$EXP"
+  exit 0
+fi
 "$PY" train.py -s "$OUT/$S/4dgs/cams_$N" --port "${PORT:-$((6200 + 10#$N))}" --expname "$EXP" --configs "$CFG" "$@"
 "$PY" render.py --model_path "output/$EXP" --skip_train --skip_video --configs "$CFG"
 "$PY" metrics.py --model_path "output/$EXP"

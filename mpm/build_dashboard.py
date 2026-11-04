@@ -125,9 +125,25 @@ def scene_payload(sdir, results_root, out_dir):
     gt = [str(thumb(sdir / "images" / show_cam / f"{f:05d}.png", img_dir / f"gt_{f:05d}.jpg").relative_to(out_dir))
           if (sdir / "images" / show_cam / f"{f:05d}.png").exists() else None for f in show_frames]
 
-    metrics, renders, per_time = {}, {}, {}
+    vid_dir = img_dir / "video"
+    video = dict(frames=avail, gt=[], pred={})
+    for f in avail:
+        src = sdir / "images" / show_cam / f"{f:05d}.png"
+        video["gt"].append(str(thumb(src, vid_dir / f"gt_{f:05d}.jpg", 256).relative_to(out_dir))
+                           if src.exists() else None)
+    metrics, renders, per_time, mp4s = {}, {}, {}, {}
     for n in rig["subsets"]:
         exp = Path(results_root) / name / f"cams_{n:02d}" if results_root else None
+        # 4DGaussians' own render.py videos: test/ours_<it>/video_rgb.mp4 (every held-out
+        # view in sequence) and video/ours_<it>/video_rgb.mp4 (orbit, only without --skip_video)
+        for kind in ("test", "video"):
+            runs = sorted((exp / kind).glob("ours_*/video_rgb.mp4"),
+                          key=lambda p: int(p.parent.name.split("_")[-1])) if exp and (exp / kind).exists() else []
+            if runs:
+                dst = img_dir / "mp4" / f"cams{n:02d}_{kind}.mp4"
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(runs[-1], dst)
+                mp4s.setdefault(n, {})[kind] = str(dst.relative_to(out_dir))
         idx_file = sdir / "4dgs" / f"cams_{n:02d}" / "test_index.json"
         if exp and (exp / "point_cloud").exists():
             its = sorted((exp / "point_cloud").glob("iteration_*"), key=lambda p: int(p.name.split("_")[-1]))
@@ -160,6 +176,13 @@ def scene_payload(sdir, results_root, out_dir):
                 row.append(str(thumb(src, img_dir / f"cams{n:02d}_{f:05d}.jpg").relative_to(out_dir))
                            if src is not None and src.exists() else None)
             renders[n] = row
+            vrow = []
+            for f in avail:
+                i = lookup.get((show_cam, f))
+                src = exp / "test" / m / "renders" / f"{i:05d}.png" if i is not None else None
+                vrow.append(str(thumb(src, vid_dir / f"cams{n:02d}_{f:05d}.jpg", 256).relative_to(out_dir))
+                            if src is not None and src.exists() else None)
+            video["pred"][n] = vrow
 
     return dict(
         name=name, subsets=rig["subsets"], fps=scene["fps"], n_frames=n_frames,
@@ -167,7 +190,7 @@ def scene_payload(sdir, results_root, out_dir):
         objects=[dict(name=o["name"], E=o["E"], nu=o["nu"], color=o["color"]) for o in scene["objects"]],
         static=[s["name"] for s in scene["static_objects"]],
         show_cam=show_cam, show_frames=show_frames, peak_frame=peak, gt=gt,
-        renders=renders, metrics=metrics, per_time=per_time,
+        renders=renders, metrics=metrics, per_time=per_time, video=video, mp4s=mp4s,
         strain=[round(float(s), 4) for s in strain],
         solver=sim_meta["solver"],
     )
@@ -280,6 +303,14 @@ function sceneView(si){
    </section>
    <section class="card"><h2>PSNR over time (held-out cameras)</h2><div id="ptime" class="plot" style="height:460px"></div></section>
   </div>
+  <section class="card"><h2>Video from ${s.show_cam} (held out)</h2>
+    <div class="seg"><button id="vplay">Play</button>
+      <input id="vslider" type="range" min="0" max="${s.video.frames.length-1}" value="0" style="flex:1;min-width:120px" aria-label="frame">
+      <span class="lab" id="vlabel" style="align-self:center;min-width:120px"></span></div>
+    <div id="video"></div></section>
+  <section class="card"><h2>4DGaussians videos (video_rgb.mp4)</h2>
+    <p class="lab">Test video: all 8 held-out cameras one after another. Orbit: a moving camera (only if render.py ran without --skip_video).</p>
+    <div id="mp4s"></div></section>
   <section class="card"><h2>Renders from ${s.show_cam} (held out)</h2><div id="renders"></div></section>`;
 
   let cloud = cloudKeys[0];
@@ -324,6 +355,37 @@ function sceneView(si){
       + s.subsets.map(n=>cell((s.renders[n]||[])[i],n+" cameras")).join("");
   });
   document.getElementById("renders").innerHTML = g + "</div>";
+
+  // synced flipbook: ground truth + every camera count, same held-out camera
+  const V = s.video, vcols = ["ground truth"].concat(s.subsets.map(n=>n+" cams"));
+  const srcs = [V.gt].concat(s.subsets.map(n=>V.pred[n]||[]));
+  document.getElementById("video").innerHTML = `<div class="grid" style="--cols:${vcols.length};grid-template-columns:repeat(${vcols.length},minmax(0,1fr))">`
+    + vcols.map(c=>`<div class="lab">${c}</div>`).join("")
+    + srcs.map((col,j)=>col.length&&col[0]?`<img data-col="${j}" alt="${vcols[j]}">`:`<div class="ph">not trained yet</div>`).join("") + "</div>";
+  srcs.forEach(col=>col.forEach(u=>{if(u){const im=new Image();im.src=u;}}));  // preload
+  const vid = (u,t) => u?`<video src="${u}" controls loop muted playsinline preload="metadata" title="${t}" style="width:100%;border-radius:6px;background:#000"></video>`:`<div class="ph">${t}</div>`;
+  const hasOrbit = s.subsets.some(n=>(s.mp4s[n]||{}).video);
+  document.getElementById("mp4s").innerHTML = `<div class="grid" style="--cols:${s.subsets.length};grid-template-columns:repeat(${s.subsets.length},minmax(0,1fr))">`
+    + s.subsets.map(n=>`<div class="lab">${n} cams</div>`).join("")
+    + s.subsets.map(n=>vid((s.mp4s[n]||{}).test, (s.mp4s[n]||{}).test?n+" cams, test":"not rendered yet")).join("")
+    + (hasOrbit ? s.subsets.map(n=>vid((s.mp4s[n]||{}).video, (s.mp4s[n]||{}).video?n+" cams, orbit":"no orbit video")).join("") : "")
+    + "</div>";
+  const slider = document.getElementById("vslider"), label = document.getElementById("vlabel"), btn = document.getElementById("vplay");
+  const show = k => {
+    const f = V.frames[k];
+    document.querySelectorAll("#video img[data-col]").forEach(im=>{const u=srcs[+im.dataset.col][k]; if(u) im.src=u;});
+    slider.value = k;
+    label.textContent = `frame ${f} · ${(f/s.fps).toFixed(2)} s` + (Math.abs(f-s.peak_frame)<=1?" · impact":"");
+  };
+  let k = 0, timer = null;
+  const step = () => { k = (k+1) % V.frames.length; show(k);
+    const dt = k+1<V.frames.length ? (V.frames[k+1]-V.frames[k]) : 1;
+    timer = setTimeout(step, Math.max(40, 1000*dt/s.fps)); };
+  btn.onclick = () => { if (timer) { clearTimeout(timer); timer=null; btn.textContent="Play"; }
+                        else { btn.textContent="Pause"; step(); } };
+  slider.oninput = () => { k = +slider.value; show(k); };
+  if (window.__vtimer) clearTimeout(window.__vtimer);
+  show(0);
 }
 
 document.getElementById("tabs").innerHTML = scenes.map((s,i)=>`<button role="tab" data-i="${i}">${s.name}</button>`).join("");
